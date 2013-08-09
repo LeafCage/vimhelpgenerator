@@ -15,13 +15,13 @@ let g:vimhelpmaker_readmefile = get(g:, 'vimhelpmaker_readmefile', 'md')
 "=============================================================================
 let s:maker = {}
 function! s:new_maker(path)
-  let maker = {'name': '', 'rootpath': '', 'is_failinit': 0, 'variables': {}, 'commands': {}, 'globalkeymappings': {'n': {}, 'i': {}, 'c': {}, 'o': {}, 'x': {}, 's': {}}, 'localkeymappings': {'n': {}, 'i': {}, 'c': {}, 'o': {}, 'x': {}, 's': {}}, 'keymappings_index': {'rhs': [], 'buflocal': [], 'mode': [], 'lhs': []}, 'functions': {}}
+  let maker = {'name': '', 'rootpath': '', 'is_failinit': 0, 'variables': {}, 'commands': {}, 'globalkeymappings': {}, 'localkeymappings': {}, 'keymappings_catalog': {'rhs': [], 'is_buflocal': [], 'modes': [], 'lhs': []}, 'functions': {}}
   call extend(maker, s:maker, 'keep')
   call maker._set_rootpath_and_name(a:path)
   return maker
 endfunction
 function! s:maker._set_rootpath_and_name(path) "{{{
-  for dir in ['after', 'autoload', 'syntax', 'ftplugin', 'ftdetect']
+  for dir in ['after', 'autoload', 'plugin', 'syntax', 'ftplugin', 'ftdetect']
     let findpath = finddir(dir, a:path. ';**/vimfiles')
     if findpath == ''
       continue
@@ -48,7 +48,7 @@ function! s:maker.filepaths() "{{{
   let pluginpaths = globpath(self.rootpath. '/plugin', '**/*.vim')
   let autoloadpaths = globpath(self.rootpath. '/autoload', self.name. '/**/*.vim')
   let autoloadfile = globpath(self.rootpath. '/autoload', self.name. '.vim')
-  let self.filepaths = split(pluginpaths. "\n". autoloadpaths. "\n". autoloadfile, '\n')
+  let self.filepaths = filter(split(pluginpaths. "\n". autoloadpaths. "\n". autoloadfile, '\n'), 'v:val!=""')
   return self.filepaths
 endfunction
 "}}}
@@ -60,29 +60,24 @@ function! s:maker.add(gatherer) "{{{
   catch /E737/
     echoerr 'vimhelpmaker: 同名のコマンドが複数定義されています。'. v:exception
   endtry
-  for m in ['n', 'i', 'c', 'o', 'x', 's']
-    call map(self.localkeymappings[m], 's:_combine_keymappings(a:gatherer.localkeymappings[m], v:key, v:val)')
-    call extend(self.localkeymappings[m], a:gatherer.localkeymappings[m], 'keep')
-    try
-      call extend(self.globalkeymappings[m], a:gatherer.globalkeymappings[m], 'error')
-    catch /E737/
-      echoerr 'vimhelpmaker: 同じグローバルキーマップが複数定義されています。'. v:exception
-    endtry
-  endfor
-  call extend(self.keymappings_index.rhs, a:gatherer.keymappings_index.rhs)
-  call extend(self.keymappings_index.buflocal, a:gatherer.keymappings_index.buflocal)
-  call extend(self.keymappings_index.mode, a:gatherer.keymappings_index.mode)
-  call extend(self.keymappings_index.lhs, a:gatherer.keymappings_index.lhs)
+  call map(self.localkeymappings, 's:_combine_keymapping(a:gatherer.localkeymappings, v:key, v:val)')
+  call extend(self.localkeymappings, a:gatherer.localkeymappings, 'keep')
+  call map(self.globalkeymappings, 's:_combine_keymappings(a:gatherer.globalkeymappings, v:key, v:val)')
+  call extend(self.globalkeymappings, a:gatherer.globalkeymappings, 'keep')
+  call extend(self.keymappings_catalog.rhs, a:gatherer.keymappings_catalog.rhs)
+  call extend(self.keymappings_catalog.is_buflocal, a:gatherer.keymappings_catalog.is_buflocal)
+  call extend(self.keymappings_catalog.modes, a:gatherer.keymappings_catalog.modes)
+  call extend(self.keymappings_catalog.lhs, a:gatherer.keymappings_catalog.lhs)
   call extend(self.functions, a:gatherer.functions, 'keep')
 endfunction
 "}}}
 function! s:maker.set_default_keymappings() "{{{
-  for lhs in self.keymappings_index.lhs
+  for lhs in keys(self.globalkeymappings) + keys(self.localkeymappings)
     if lhs =~? '^<Plug>'
-      call s:_find_pluginmapping_from_rhss(lhs, self.globalkeymappings, self.localkeymappings, self.keymappings_index)
+      call s:_find_pluginmapping_from_rhss(lhs, self.globalkeymappings, self.localkeymappings, self.keymappings_catalog)
     endif
   endfor
-  unlet self.keymappings_index
+  unlet self.keymappings_catalog
 endfunction
 "}}}
 
@@ -94,7 +89,6 @@ function! s:maker.make_gitignore() "{{{
   endif
 endfunction
 "}}}
-
 function! s:maker.make_help(lang) "{{{
   let self.lang = a:lang ==? 'ja' ? s:_ja_lang() : s:_en_lang()
   let self.sep_l = repeat('=', 78)
@@ -159,154 +153,13 @@ function! s:maker.make_help(lang) "{{{
   return helppath
 endfunction
 "}}}
-function! s:maker._contents() "{{{
-  let self.contents = g:vimhelpmaker_modeline=~'noet\|noexpandtab' ? function('s:_contents_tab') : function('s:_contents_space')
-  let lines = ['', self.sep_l, self.caption(self.lang.contents, 'contents'), '',]
-  if g:vimhelpmaker_contents.introduction
-    call add(lines, self.contents(self.lang.introduction, 'introduction'))
-  endif
-  if g:vimhelpmaker_contents.usage
-    call add(lines, self.contents(self.lang.usage, 'usage'))
-  endif
-  if g:vimhelpmaker_contents.interface
-    call add(lines, self.contents(self.lang.interface, 'interface'))
-  endif
-  if g:vimhelpmaker_contents.variables
-    call add(lines, self.contents(self.lang.variables, 'variables', '  '))
-  endif
-  if g:vimhelpmaker_contents.commands
-    call add(lines, self.contents(self.lang.commands, 'commands', '  '))
-  endif
-  if g:vimhelpmaker_contents['key-mappings']
-    call add(lines, self.contents(self.lang['key-mappings'], 'key-mappings', '  '))
-  endif
-  if g:vimhelpmaker_contents.functions
-    call add(lines, self.contents(self.lang.functions, 'functions', '  '))
-  endif
-  if g:vimhelpmaker_contents.todo
-    call add(lines, self.contents(self.lang.todo, 'todo'))
-  endif
-  if g:vimhelpmaker_contents.changelog
-    call add(lines, self.contents(self.lang.changelog, 'changelog'))
-  endif
-  call extend(lines, ['', ''])
-  unlet self.contents
-  return lines
-endfunction
-"}}}
-function! s:maker._introduction() "{{{
-  let lines = [self.sep_l, self.caption(self.lang.introduction, 'introduction'), '', printf(self.lang.introduction_preface, self.name), '', self.lang.requirements, '- ', '', self.lang['latest-version'], '', '']
-  return lines
-endfunction
-"}}}
-function! s:maker._usage() "{{{
-  let lines = [self.sep_l, self.caption(self.lang.usage, 'usage'), '', '']
-  return lines
-endfunction
-"}}}
-function! s:maker._interface() "{{{
-  let lines = [self.sep_l, self.caption(self.lang.interface, 'interface'), '']
-  return lines
-endfunction
-"}}}
-function! s:maker._variables() "{{{
-  let lines = [self.sep_s, self.caption(self.lang.variables, 'variables'), '']
-  for var in sort(keys(self.variables))
-    call extend(lines, self.interface(var, var))
-    if self.variables[var].vals != []
-      for val in self.variables[var].vals
-        if val =~ "\n"
-          call add(lines, "\t". self.lang.default. ' >')
-          call extend(lines, split("\t". val, '\n'))
-          call add(lines, '<')
-        else
-          call add(lines, "\t". self.lang.default. substitute(val, '''', '"', 'g'))
-        endif
-      endfor
-    endif
-    call add(lines, '')
-    call add(lines, '')
-  endfor
-  return lines
-endfunction
-"}}}
-function! s:maker._commands() "{{{
-  let lines = [self.sep_s, self.caption(self.lang.commands, 'commands'), '']
-  let globalcmds = filter(copy(self.commands), '!v:val.buflocal')
-  call s:_add_commandhelpstr(lines, sort(keys(globalcmds)), self)
-  let buflocalcmds = filter(copy(self.commands), 'v:val.buflocal')
-  if buflocalcmds == {}
-    return lines
-  endif
-  call extend(lines, [self.sep_s, self.caption(self.lang['buffer-local-commands'], 'buffer-local-commands'), ''])
-  call s:_add_commandhelpstr(lines, sort(keys(buflocalcmds)), self)
-  return lines
-endfunction
-"}}}
-function! s:maker._keymappings() "{{{
-  let sep_ss = repeat('-', 39)
-  let lines = [self.sep_s, self.caption(self.lang['key-mappings'], 'key-mappings'), '']
-  for m in ['n', 'x', 's', 'o', 'i', 'c']
-    let lhss = filter(keys(self.globalkeymappings[m]), 'v:val =~ "^<Plug>"')
-    if lhss == []
-      continue
-    endif
-    call extend(lines, [sep_ss, self.lang.modecaption[m], ''])
-    for lhskey in sort(lhss)
-      call extend(lines, self.interface(lhskey, lhskey))
-      for mapping in self.globalkeymappings[m][lhskey].defaultmappings
-        call add(lines, "\t". self.lang.defaultmapping. mapping)
-      endfor
-      call extend(lines, ['', ''])
-    endfor
-  endfor
-  for m in ['n', 'x', 's', 'o', 'i', 'c']
-    let lhss = filter(keys(self.localkeymappings[m]), 'v:val =~ "^<Plug>"')
-    if lhss == []
-      continue
-    endif
-    call extend(lines, [sep_ss, self.lang.modecaption[m], ''])
-    for lhskey in sort(lhss)
-      call extend(lines, self.interface(lhskey, lhskey))
-      for lhsdict in self.localkeymappings[m][lhskey]
-        for mapping in lhsdict.defaultmappings
-          call add(lines, "\t". self.lang.defaultmapping. mapping)
-        endfor
-      endfor
-      call extend(lines, ['', ''])
-    endfor
-  endfor
-  return lines
-endfunction
-"}}}
-function! s:maker._functions() "{{{
-  let lines = [self.sep_s, self.caption(self.lang.functions, 'functions'), '']
-  let globalfuncs = keys(filter(copy(self.functions), 'v:val.global'))
-  for func in sort(globalfuncs)
-    call extend(lines, self.interface(printf('%s(%s)', func, self.functions[func].param), func))
-    call extend(lines, ['', ''])
-  endfor
-  return lines
-endfunction
-"}}}
-function! s:maker._todo() "{{{
-  let lines = [self.sep_l, self.caption(self.lang.todo, 'todo'), '', '']
-  return lines
-endfunction
-"}}}
-function! s:maker._changelog() "{{{
-  let lines = [self.sep_l, self.caption(self.lang.changelog, 'changelog'), '', '']
-  return lines
-endfunction
-"}}}
-
 function! s:maker.make_readme() "{{{
 endfunction
 "}}}
 "==================
 let s:gatherer = {}
 function! s:new_gatherer(path, rootpath)
-  let gatherer = {'variables': {}, 'commands': {}, 'globalkeymappings': {'n': {}, 'i': {}, 'c': {}, 'o': {}, 'x': {}, 's': {}}, 'localkeymappings': {'n': {}, 'i': {}, 'c': {}, 'o': {}, 'x': {}, 's': {}}, 'keymappings_index': {'rhs': [], 'buflocal': [], 'mode': [], 'lhs': []}, 'functions': {},}
+  let gatherer = {'variables': {}, 'commands': {}, 'globalkeymappings': {}, 'localkeymappings': {}, 'keymappings_catalog': {'rhs': [], 'is_buflocal': [], 'modes': [], 'lhs': []}, 'functions': {},}
   let gatherer.path = fnamemodify(a:path, ':p')
   let gatherer.autoload_prefix = s:_autoload_prefix(a:path, a:rootpath)
   let gatherer.lines = filter(readfile(a:path), 'v:val !~ "^\\s*$"')
@@ -400,24 +253,19 @@ function! s:gatherer._add_keymappings(idx) "{{{
   if lhs == '' || rhs == ''
     return | "s:_mapcommand()が誤爆したとき用
   endif
-  if options.buflocal
-    for m in ['n', 'i', 'c', 'o', 'x', 's']
-      if mode[m]
-        let self.localkeymappings[m][lhs] = get(self.localkeymappings[m], lhs, [])
-        call add(self.localkeymappings[m][lhs], extend({'remap': remap, 'rhs': rhs, 'mode': mode, 'defaultmappings': []}, options))
-      endif
-    endfor
-  else
-    for m in ['n', 'i', 'c', 'o', 'x', 's']
-      if mode[m]
-        let self.globalkeymappings[m][lhs] = extend({'remap': remap, 'rhs': rhs, 'mode': mode, 'defaultmappings': []}, options)
-      endif
-    endfor
-  endif
-  call add(self.keymappings_index.rhs, rhs)
-  call add(self.keymappings_index.buflocal, options.buflocal)
-  call add(self.keymappings_index.mode, mode)
-  call add(self.keymappings_index.lhs, lhs)
+  let keymappings = options.is_buflocal ? self.localkeymappings : self.globalkeymappings
+  let keymappings[lhs] = get(keymappings, lhs, {'common': {'is_defaultmapping': 0, 'is_local': options.is_buflocal}})
+  for m in ['n', 'i', 'c', 'o', 'x', 's']
+    if !mode[m]
+      continue
+    endif
+    let keymappings[lhs][m] = get(keymappings[lhs], m, s:_neutral_keymappingmodes())
+    call add(keymappings[lhs][m].rhs, rhs)
+  endfor
+  call add(self.keymappings_catalog.rhs, rhs)
+  call add(self.keymappings_catalog.is_buflocal, options.is_buflocal)
+  call add(self.keymappings_catalog.modes, keys(filter(mode, 'v:val==1')))
+  call add(self.keymappings_catalog.lhs, lhs)
 endfunction
 "}}}
 function! s:gatherer._add_functions(idx) "{{{
@@ -427,9 +275,9 @@ function! s:gatherer._add_functions(idx) "{{{
     return
   endif
   let [funcname, param] = func[1:2]
-  let self.functions[funcname] = {'param': substitute(param, '\w\+\|\.\.\.', '{\0}', 'g')}
-  let self.functions[funcname].global = funcname =~ '^\u\|^[^s]:'. (self.autoload_prefix == '' ? '' : '\|'. self.autoload_prefix)
-  let self.functions[funcname].dict = funcname =~ '\.\|\['
+  let self.functions[funcname] = {'param': substitute(substitute(param, '\w\+\|\.\.\.', '{\0}', 'g'), '_', '-', 'g')}
+  let self.functions[funcname].is_global = funcname =~ '^\u\|^[^s]:'. (self.autoload_prefix == '' ? '' : '\|'. self.autoload_prefix)
+  let self.functions[funcname].is_dict = funcname =~ '\.\|\['
 endfunction
 "}}}
 
@@ -500,50 +348,59 @@ function! s:_combine_keymappings(gathererkeymappings_lhs, lhs, elm) "{{{
   return a:elm
 endfunction
 "}}}
+function! s:_combine_keymapping(gathererkeymappings, lhs, modes) "{{{
+  if !has_key(a:gathererkeymappings, a:lhs)
+    return a:modes
+  endif
+  for m in ['n', 'i', 'x', 's', 'o', 'c']
+    if has_key(a:gathererkeymappings[a:lhs], m)
+      let a:modes[m] = get(a:modes, m, s:_neutral_keymappingmodes())
+      call extend(a:modes[m].rhs, a:gathererkeymappings[a:lhs][m].rhs)
+    endif
+  endfor
+  return a:modes
+endfunction
+"}}}
 "set_default_keymappings()
-function! s:_find_pluginmapping_from_rhss(pluginmapping, globalkeymappings, localkeymappings, keymappings_index) "{{{
+function! s:_find_pluginmapping_from_rhss(pluginmapping, globalkeymappings, localkeymappings, keymappings_catalog) "{{{
   let i = 1
   while 1
-    let idx = match(a:keymappings_index.rhs, a:pluginmapping, 0, i)
+    let idx = match(a:keymappings_catalog.rhs, a:pluginmapping, 0, i)
     if idx == -1
       return
     endif
-    let findedrhs_mode = a:keymappings_index.mode[idx]
-    let findedrhs_lhskey = a:keymappings_index.lhs[idx]
-    if a:keymappings_index.buflocal[idx]
-      for m in ['n', 'i', 'c', 'o', 'x', 's']
-        if !findedrhs_mode[m] || !has_key(a:localkeymappings[m], a:pluginmapping)
-          continue
-        endif
-        for lhs in a:localkeymappings[m][a:pluginmapping]
-          if index(lhs.defaultmappings, findedrhs_lhskey) == -1
-            call add(lhs.defaultmappings, findedrhs_lhskey)
-          endif
-        endfor
-      endfor
-    else
-      for m in ['n', 'i', 'c', 'o', 'x', 's']
-        if !findedrhs_mode[m] || !has_key(a:globalkeymappings[m], a:pluginmapping)
-          continue
-        endif
-        if index(a:globalkeymappings[m][a:pluginmapping].defaultmappings, findedrhs_lhskey) == -1
-          call add(a:globalkeymappings[m][a:pluginmapping].defaultmappings, findedrhs_lhskey)
-        endif
-      endfor
-    endif
+    let keymappings = a:keymappings_catalog.is_buflocal[idx] ? a:localkeymappings : a:globalkeymappings
+    let keymappings[a:keymappings_catalog.lhs[idx]].common.is_defaultmapping = 1
+    let keymappings = has_key(a:localkeymappings, a:pluginmapping) ? a:localkeymappings : a:globalkeymappings
+    for m in a:keymappings_catalog.modes[idx]
+      if !has_key(keymappings[a:pluginmapping], m)
+        continue
+      endif
+      if a:keymappings_catalog.is_buflocal[idx]
+        call s:_add_without_duplicate(keymappings[a:pluginmapping][m].localdefaultmappings, a:keymappings_catalog.lhs[idx])
+      else
+        call s:_add_without_duplicate(keymappings[a:pluginmapping][m].defaultmappings, a:keymappings_catalog.lhs[idx])
+      endif
+    endfor
     let i += 1
   endwhile
 endfunction
 "}}}
-"make_help
+function! s:_add_without_duplicate(list, expr) "{{{
+  if index(a:list, a:expr) == -1
+    call add(a:list, a:expr)
+  endif
+endfunction
+"}}}
+"make_help misc
 function! s:_ja_lang() "{{{
   return {'contents': '目次', 'introduction': '概要', 'introduction_preface': '*%s* は～するVimプラグインです。',
     \ 'requirements': '要件:', 'latest-version': '最新版:', 'usage': '使い方', 'interface': 'インターフェイス',
-    \ 'variables': '変数', 'default': '既定: ', 'commands': 'コマンド', 'buffer-local-commands': 'バッファローカルコマンド',
-    \ 'lines': '行', 'whole-file': 'ファイル全体', 'key-mappings': 'キーマッピング', 'defaultmapping': 'デフォルトマッピング: ',
-    \ 'modecaption': {'n': 'ノーマルモードマッピング', 'x': 'ビジュアルモードマッピング', 's': 'セレクトモードマッピング',
-    \ 'o': 'オペレータモードマッピング', 'i': 'インサートモードマッピング', 'c': 'コマンドラインマッピング'},
-    \ 'enable': '有効', 'n': 'ノーマル', 'x': 'ビジュアル', 's': 'セレクト', 'o': 'オペレータ', 'i': 'インサート', 'c': 'コマンドライン', 'buffer-local-mapping': 'バッファローカル',
+    \ 'variables': '変数', 'default': '既定: ', 'commands': 'コマンド', 'buffer-local-command': 'バッファローカルなコマンド',
+    \ 'lines': '行', 'whole-file': 'ファイル全体', 'key-mappings': 'キーマッピング', 'enablemodes': '有効モード',
+    \ 'buffer-local-mapping': 'バッファローカルなマッピング', 'defaultmappings_global': 'デフォルトマッピング(グローバル)', 'defaultmappings_local': 'デフォルトマッピング(バッファローカル)', 'defaultmappings': 'デフォルトマッピング', 'localdefaultmappings': 'ローカルデフォルトマッピング',
+    \ 'modeshortname': {'n': 'ノーマル', 'x': 'ビジュアル', 's': 'セレクト', 'o': 'オペレータ', 'i': 'インサート', 'c': 'コマンドライン'},
+    \ 'modename': {'n': 'ノーマルモード', 'x': 'ビジュアルモード', 's': 'セレクトモード', 'o': 'オペレータモード', 'i': 'インサートモード', 'c': 'コマンドライン'},
     \ 'functions': '関数', 'todo': 'TODO', 'changelog': '更新履歴', }
 endfunction
 "}}}
@@ -561,18 +418,6 @@ function! s:_caption_tab(title, tag) dict "{{{
   return printf('%s%s*%s-%s*', a:title, repeat("\t", tabnum), self.name, a:tag)
 endfunction
 "}}}
-function! s:_contents_space(title, tag, ...) dict "{{{
-  let padding = get(a:, 1, '')
-  let byte_display_diff = strlen(a:title) - strdisplaywidth(a:title)
-  return printf('%s%-*s%s|%s-%s|', padding, 32 + byte_display_diff, a:title, padding, self.name, a:tag)
-endfunction
-"}}}
-function! s:_contents_tab(title, tag, ...) dict "{{{
-  let padding = get(a:, 1, '')
-  let tabnum = 4 - (strdisplaywidth(padding. a:title) / 8)
-  return printf('%s%s%s%s|%s-%s|', padding, a:title, repeat("\t", tabnum), padding, self.name, a:tag)
-endfunction
-"}}}
 function! s:_interface_space(title, tag) "{{{
   if strdisplaywidth(a:tag) <= 28 && strdisplaywidth(a:title) <= 40
     let byte_display_diff = strlen(a:title) - strdisplaywidth(a:title)
@@ -587,54 +432,260 @@ function! s:_interface_space(title, tag) "{{{
 endfunction
 "}}}
 function! s:_interface_tab(title, tag) "{{{
-  if strdisplaywidth(a:tag) <= 28 && strdisplaywidth(a:title) <= 40
-    let tabnum = 6 - (strdisplaywidth(a:title) / 8)
+  let titlelen = strdisplaywidth(a:title)
+  let taglen = strdisplaywidth(a:tag)
+  if taglen <= 28 && titlelen <= 40
+    let tabnum = 6 - (titlelen / 8)
+    return [printf('%s%s*%s*', a:title, repeat("\t", tabnum), a:tag)]
+  elseif taglen > 28 && titlelen < 39
+    let tabnum = 5 - (titlelen / 8)
     return [printf('%s%s*%s*', a:title, repeat("\t", tabnum), a:tag)]
   else
-    let tabnum = (78 - strdisplaywidth(a:tag) - 2) / 8
+    let tabnum = (78 - taglen - 2) / 8
     return [printf('%s*%s*', repeat("\t", tabnum > 6 ? 6 : tabnum), a:tag), a:title]
   endif
 endfunction
 "}}}
-function! s:_add_commandhelpstr(lines, commands, this) "{{{
-  for cmd in a:commands
-    let [command, description] = s:_commandhelpstr(cmd, a:this)
-    call extend(a:lines, a:this.interface(command, ':'. cmd))
-    if description != ''
-      call add(a:lines, description)
+"make_help main
+function! s:maker._contents() "{{{
+  let self.contents = g:vimhelpmaker_modeline=~'noet\|noexpandtab' ? function('s:_contents_tab') : function('s:_contents_space')
+  let lines = ['', self.sep_l, self.caption(self.lang.contents, 'contents'), '',]
+  if g:vimhelpmaker_contents.introduction
+    call add(lines, self.contents(self.lang.introduction, 'introduction'))
+  endif
+  if g:vimhelpmaker_contents.usage
+    call add(lines, self.contents(self.lang.usage, 'usage'))
+  endif
+  if g:vimhelpmaker_contents.interface
+    call add(lines, self.contents(self.lang.interface, 'interface'))
+  endif
+  if g:vimhelpmaker_contents.variables
+    call add(lines, self.contents(self.lang.variables, 'variables', '  '))
+  endif
+  if g:vimhelpmaker_contents.commands
+    call add(lines, self.contents(self.lang.commands, 'commands', '  '))
+  endif
+  if g:vimhelpmaker_contents['key-mappings']
+    call add(lines, self.contents(self.lang['key-mappings'], 'key-mappings', '  '))
+  endif
+  if g:vimhelpmaker_contents.functions
+    call add(lines, self.contents(self.lang.functions, 'functions', '  '))
+  endif
+  if g:vimhelpmaker_contents.todo
+    call add(lines, self.contents(self.lang.todo, 'todo'))
+  endif
+  if g:vimhelpmaker_contents.changelog
+    call add(lines, self.contents(self.lang.changelog, 'changelog'))
+  endif
+  call extend(lines, ['', ''])
+  unlet self.contents
+  return lines
+endfunction
+"}}}
+function! s:maker._introduction() "{{{
+  let lines = [self.sep_l, self.caption(self.lang.introduction, 'introduction'), '', printf(self.lang.introduction_preface, self.name), '', self.lang.requirements, '- ', '', self.lang['latest-version'], '', '']
+  return lines
+endfunction
+"}}}
+function! s:maker._usage() "{{{
+  let lines = [self.sep_l, self.caption(self.lang.usage, 'usage'), '', '']
+  return lines
+endfunction
+"}}}
+function! s:maker._interface() "{{{
+  let lines = [self.sep_l, self.caption(self.lang.interface, 'interface'), '']
+  return lines
+endfunction
+"}}}
+function! s:maker._variables() "{{{
+  let lines = [self.sep_s, self.caption(self.lang.variables, 'variables'), '']
+  for var in sort(keys(self.variables))
+    call extend(lines, self.interface(var, var))
+    if self.variables[var].vals != []
+      for val in self.variables[var].vals
+        if val =~ "\n"
+          call add(lines, "\t". self.lang.default. ' >')
+          call extend(lines, split("\t". val, '\n'))
+          call add(lines, '<')
+        else
+          call add(lines, "\t". self.lang.default. substitute(val, '''', '"', 'g'))
+        endif
+      endfor
+    endif
+    call extend(lines, ['', ''])
+  endfor
+  return lines
+endfunction
+"}}}
+function! s:maker._commands() "{{{
+  let lines = [self.sep_s, self.caption(self.lang.commands, 'commands'), '']
+  let globalcmds = filter(copy(self.commands), '!v:val.is_buflocal')
+  call self.__append_commands_lines(lines, globalcmds)
+  let buflocalcmds = filter(copy(self.commands), 'v:val.is_buflocal')
+  call self.__append_commands_lines(lines, buflocalcmds)
+  return lines
+endfunction
+"}}}
+function! s:maker._keymappings() "{{{
+  let sep_ss = repeat('-', 39)
+  let lines = [self.sep_s, self.caption(self.lang['key-mappings'], 'key-mappings'), '']
+  let [GLOBAL, LOCAL] = [0, 1]
+  call self.__append_keymapping_lines(lines, self.globalkeymappings, GLOBAL)
+  call self.__append_keymapping_lines(lines, self.localkeymappings, LOCAL)
+  let globaldefaultkeymappings = filter(copy(self.globalkeymappings), 'v:val.common.is_defaultmapping')
+  let localdefaultkeymappings = filter(copy(self.localkeymappings), 'v:val.common.is_defaultmapping')
+  if globaldefaultkeymappings != {} || localdefaultkeymappings != {}
+    call extend(lines, [self.caption('', 'default-key-mappings'), ''])
+    call self.__append_defaultkeymappinglist_lines(lines, globaldefaultkeymappings, GLOBAL)
+    call self.__append_defaultkeymappinglist_lines(lines, localdefaultkeymappings, LOCAL)
+  endif
+  return lines
+endfunction
+"}}}
+function! s:maker._functions() "{{{
+  let lines = [self.sep_s, self.caption(self.lang.functions, 'functions'), '']
+  let globalfuncs = keys(filter(copy(self.functions), 'v:val.is_global'))
+  for func in sort(globalfuncs)
+    call extend(lines, self.interface(printf('%s(%s)', func, self.functions[func].param), func))
+    call extend(lines, ['', ''])
+  endfor
+  return lines
+endfunction
+"}}}
+function! s:maker._todo() "{{{
+  let lines = [self.sep_l, self.caption(self.lang.todo, 'todo'), '', '']
+  return lines
+endfunction
+"}}}
+function! s:maker._changelog() "{{{
+  let lines = [self.sep_l, self.caption(self.lang.changelog, 'changelog'), '', '']
+  return lines
+endfunction
+"}}}
+"make_help contents
+function! s:_contents_space(title, tag, ...) dict "{{{
+  let padding = get(a:, 1, '')
+  let byte_display_diff = strlen(a:title) - strdisplaywidth(a:title)
+  return printf('%s%-*s%s|%s-%s|', padding, 32 + byte_display_diff, a:title, padding, self.name, a:tag)
+endfunction
+"}}}
+function! s:_contents_tab(title, tag, ...) dict "{{{
+  let padding = get(a:, 1, '')
+  let tabnum = 4 - (strdisplaywidth(padding. a:title) / 8)
+  return printf('%s%s%s%s|%s-%s|', padding, a:title, repeat("\t", tabnum), padding, self.name, a:tag)
+endfunction
+"}}}
+"make_help commands
+function! s:maker.__append_commands_lines(lines, commands) "{{{
+  for cmd in sort(keys(a:commands))
+    let [commandhelpstr, range_description] = self._build_commandhelpstr(cmd)
+    call extend(a:lines, self.interface(commandhelpstr, ':'. cmd))
+    if self.commands[cmd].is_buflocal
+      call add(a:lines, "\t". self.lang['buffer-local-command'])
+    endif
+    if range_description != ''
+      call add(a:lines, range_description)
     endif
     call extend(a:lines, ['', ''])
   endfor
 endfunction
 "}}}
-function! s:_commandhelpstr(cmd, this) "{{{
-  let command = ':'
-  let description = ''
-  if a:this.commands[a:cmd].range.range != ''
-    let command .= '[range]'
-    let description = '[range] '. a:this.lang.lines. ' ('. a:this.lang.default. a:this.commands[a:cmd].range.range=='%' ? self.lang['whole-file'] : a:this.commands[a:cmd].range.range. ')'
+function! s:maker._build_commandhelpstr(cmd) "{{{
+  let commandhelpstr = ':'
+  let range_description = ''
+  let command = self.commands[a:cmd]
+  if command.range.range != ''
+    let commandhelpstr .= '[range]'
+    let range_description = printf('[range] %s (%s%s)', self.lang.lines, self.lang.default, (command.range.range=='%' ? self.lang['whole-file'] : command.range.range))
   endif
-  if a:this.commands[a:cmd].range.count != ''
-    let command .= '[count]'
-    let description = '[count] ('. a:this.lang.default. a:this.commands[a:cmd].range.count. ')'
+  if command.range.count != ''
+    let commandhelpstr .= '[count]'
+    let range_description = '[count] ('. self.lang.default. command.range.count. ')'
   endif
-  let command .= a:cmd
-  if a:this.commands[a:cmd].bang
-    let command .= '[!]'
+  let commandhelpstr .= a:cmd
+  let commandhelpstr .= command.is_bang ? '[!]' : ''
+  let commandhelpstr .= command.is_register ? ' [x]' : ''
+  if command.nargs == 1
+    let commandhelpstr .= ' {}'
+  elseif command.nargs == '?'
+    let commandhelpstr .= ' [{}]'
+  elseif command.nargs == '+'
+    let commandhelpstr .= ' {} ...'
+  elseif command.nargs == '*'
+    let commandhelpstr .= ' [{} ...]'
   endif
-  if a:this.commands[a:cmd].register
-    let command .= ' [x]'
+  return [commandhelpstr, range_description]
+endfunction
+"}}}
+"make_help keymappings
+function! s:maker.__append_keymapping_lines(lines, keymappings, is_local) "{{{
+  let baflocal_label = a:is_local ? ["\t". self.lang['buffer-local-mapping']] : []
+  let s:keymappings = a:is_local ? self.localkeymappings : self.globalkeymappings
+  let lhss = sort(filter(keys(a:keymappings), 'v:val =~? ''^<Plug>\|<Leader>\|<LocalLeader>'''), 's:_sort_lhs')
+  unlet s:keymappings
+  for lhs in lhss
+    call extend(a:lines, self.interface(lhs, lhs))
+    call extend(a:lines, baflocal_label)
+    let validmodes = "\t". self.lang.enablemodes. ":"
+    let defaultmappings = []
+    let localdefaultmappings = []
+    let command = ''
+    for m in sort(filter(keys(a:keymappings[lhs]), 'v:val!="common"'), 's:_sort_mode')
+      let validmodes .= ' '. self.lang.modeshortname[m]
+      call add(defaultmappings, printf("\t\t%s:\t%s", self.lang.modeshortname[m], join(a:keymappings[lhs][m].defaultmappings)))
+      call add(localdefaultmappings, printf("\t\t%s:\t%s", self.lang.modeshortname[m], join(a:keymappings[lhs][m].localdefaultmappings)))
+      let command = matchstr(a:keymappings[lhs][m].rhs[0], '^:\%(<C-u>\)\?\zs\u\a\+\ze<CR>')
+    endfor
+    call add(a:lines, validmodes)
+    if a:keymappings[lhs][m].defaultmappings != []
+      call add(a:lines, "\t". self.lang.defaultmappings_global. ":")
+      call extend(a:lines, defaultmappings)
+    endif
+    if a:keymappings[lhs][m].localdefaultmappings != []
+      call add(a:lines, "\t". self.lang.defaultmappings_local. ":")
+      call extend(a:lines, localdefaultmappings)
+    endif
+    if command != ''
+      call add(a:lines, "\t|:". command. "|")
+    endif
+    call extend(a:lines, ['', ''])
+  endfor
+endfunction
+"}}}
+function! s:_sort_lhs(lhs1, lhs2) "{{{
+  return s:_expr_modes(keys(s:keymappings[a:lhs2])) - s:_expr_modes(keys(s:keymappings[a:lhs1]))
+endfunction
+"}}}
+function! s:_expr_modes(modes) "{{{
+  let expr = map(a:modes, 'v:val=="n" ? 32 : v:val=="i" ? 16 : v:val=="x" ? 8 : v:val=="s" ? 4 : v:val=="o" ? 2 : 1')
+  return eval(join(expr, '+'))
+endfunction
+"}}}
+function! s:_sort_mode(m1, m2) "{{{
+  return s:_expr_mode(a:m2) - s:_expr_mode(a:m1)
+endfunction
+"}}}
+function! s:_expr_mode(m) "{{{
+  return a:m=='n' ? 32 : a:m=='i' ? 16 : a:m=='x' ? 8 : a:m=='s' ? 4 : a:m=='o' ? 2 : 1
+endfunction
+"}}}
+function! s:maker.__append_defaultkeymappinglist_lines(lines, defaultkeymappings, is_local) "{{{
+  if a:defaultkeymappings == {}
+    return
   endif
-  if a:this.commands[a:cmd].nargs == 1
-    let command .= ' {}'
-  elseif a:this.commands[a:cmd].nargs == '?'
-    let command .= ' [{}]'
-  elseif a:this.commands[a:cmd].nargs == '+'
-    let command .= ' {} ...'
-  elseif a:this.commands[a:cmd].nargs == '*'
-    let command .= ' [{} ...]'
-  endif
-  return [command, description]
+  call add(a:lines, (a:is_local ? self.lang.localdefaultmappings : self.lang.defaultmappings))
+  for m in ['n', 'i', 'x', 's', 'o', 'c']
+    let lhss = sort(keys(filter(copy(a:defaultkeymappings), 'has_key(v:val, m)')))
+    if lhss == []
+      continue
+    endif
+    call extend(a:lines, [self.lang.modename[m], "{lhs}\t\t{rhs}", "--------\t------------------------"])
+    for lhs in lhss
+      call add(a:lines, lhs. repeat("\t", (2 - strdisplaywidth(lhs) / 8)). join(a:defaultkeymappings[lhs][m].rhs))
+    endfor
+    call add(a:lines, '')
+  endfor
+  call add(a:lines, '')
 endfunction
 "}}}
 "==================
@@ -692,19 +743,19 @@ function! s:_commandname(linestr) "{{{
 endfunction
 "}}}
 function! s:_commandattr(linestr) "{{{
-  let attr = {'nargs': '', 'range': {}, 'bang': 0, 'register': 0, 'buflocal': 0}
+  let attr = {'nargs': '', 'range': {}, 'is_bang': 0, 'is_register': 0, 'is_buflocal': 0}
   let attr.nargs = matchstr(a:linestr, 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-nargs=\zs.')
   let attr.range.count = matchstr(a:linestr, 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-count\s') ? 0 : matchstr(a:linestr, 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-count=\zs\d\+')
   let attr.range.range = matchstr(a:linestr, 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-range\s') ? 'current line' : matchstr(a:linestr, 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-range=\zs\S\+')
-  let attr.bang = a:linestr =~ 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-bang' ? 1 : 0
-  let attr.register = a:linestr =~ 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-register' ? 1 : 0
-  let attr.buflocal = a:linestr =~ 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-buffer' ? 1 : 0
+  let attr.is_bang = a:linestr =~ 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-bang'
+  let attr.is_register = a:linestr =~ 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-register'
+  let attr.is_buflocal = a:linestr =~ 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-buffer'
   return attr
 endfunction
 "}}}
 "keymappings
 function! s:_mapcommand(linestr) "{{{
-  return matchstr(a:linestr, '^\s*\zs\%([nvxoic]m\%[ap]\|s\?map!\?\|[oic]\?no\%[remap]!\?\|[nvx]n\%[oremap]\|snor\%[emap]\)\ze\s')
+  return matchstr(a:linestr, '^\s*\%(sil\%[ent!]\s\+\)*\zs\%([nvxoic]m\%[ap]\|s\?map!\?\|[oic]\?no\%[remap]!\?\|[nvx]n\%[oremap]\|snor\%[emap]\)\ze\s')
 endfunction
 "}}}
 function! s:_keymap_mode(mapcommand) "{{{
@@ -733,22 +784,27 @@ function! s:__set_mode(mode, modestrlist) "{{{
 endfunction
 "}}}
 function! s:_keymap_elements(linestr, mapcommand) "{{{
-  let options = {'buflocal': 0, 'silent': 0, 'unique': 0, 'expr': 0}
+  let options = {'is_buflocal': 0, 'is_silent': 0, 'is_unique': 0, 'is_expr': 0}
   let optionsstr = matchstr(a:linestr, '\%(\%(<buffer>\|<silent>\|<expr>\|<unique>\|<special>\|<script>\)\s*\)\+')
-  let options.buflocal = optionsstr=~'<buffer>'
-  let options.silent = optionsstr=~'<silent>'
-  let options.unique = optionsstr=~'<unique>'
-  let options.expr = optionsstr=~'<expr>'
+  let options.is_buflocal = optionsstr=~'<buffer>'
+  let options.is_silent = optionsstr=~'<silent>'
+  let options.is_unique = optionsstr=~'<unique>'
+  let options.is_expr = optionsstr=~'<expr>'
 
   let lhs = matchstr(a:linestr, a:mapcommand. '\s\+'. optionsstr. '\zs\S\+')
   let rhs = matchstr(a:linestr, a:mapcommand. '\s\+'. optionsstr. escape(lhs, '~$.*\'). '\s\+\zs.\+')
-  let lhs = s:_keymap_uppercase_substitute(lhs)
-  let rhs = s:_keymap_uppercase_substitute(rhs)
+  let lhs = s:_substitute_uppercase_sameformat(lhs)
+  let rhs = s:_substitute_uppercase_sameformat(rhs)
   return [options, lhs, rhs]
 endfunction
 "}}}
-function! s:_keymap_uppercase_substitute(str) "{{{
-  return substitute(a:str, '<\(\u\)\(\a\{2,}\)>', '<\1\L\2\E>', 'g')
+function! s:_substitute_uppercase_sameformat(str) "{{{
+  let str = substitute(substitute(a:str, '<\c\([CSM]-\)\?\(\a\{2}\)>', '<\U\1\2\E>', 'g'), '\c<\([CSM]-\)\?up>', '<\u\1Up>', 'g')
+  return substitute(str, '\c<\([CSM]-\)\?\(\a\)\(\a\{2,}\)>', '<\u\1\u\2\L\3\E>', 'g')
+endfunction
+"}}}
+function! s:_neutral_keymappingmodes() "{{{
+  return {'rhs': [], 'defaultmappings': [], 'localdefaultmappings': []}
 endfunction
 "}}}
 "=============================================================================
