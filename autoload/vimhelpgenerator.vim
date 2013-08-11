@@ -229,7 +229,7 @@ function! s:generator.make_gitignore() "{{{
 endfunction
 "}}}
 function! s:generator.make_readme() "{{{
-  let lines = ['# '. self.name, '', '', '## Introduction', '', '', '## Usage', '', '']
+  let lines = ['# '. self.name, '']
   let readme_file = self.rootpath. '/README.md'
   if !filereadable(readme_file)
     call writefile(lines, readme_file)
