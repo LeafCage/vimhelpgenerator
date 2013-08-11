@@ -3,7 +3,7 @@ let s:save_cpo = &cpo| set cpo&vim
 "=============================================================================
 let g:vimhelpgenerator_version = get(g:, 'vimhelpgenerator_version', 'Version :')
 let g:vimhelpgenerator_author = get(g:, 'vimhelpgenerator_author', 'Author  :')
-let g:vimhelpgenerator_license = get(g:, 'vimhelpgenerator_license', 'vimhelpgenerator/mit_license')
+let g:vimhelpgenerator_license = get(g:, 'vimhelpgenerator_license', 'vimhelpgenerator/MIT')
 let g:vimhelpgenerator_modeline = get(g:, 'vimhelpgenerator_modeline', 'vim:tw=78:ts=8:ft=help:norl:noet:fen:fdl=0:')
 let g:vimhelpgenerator_defaultlanguage = get(g:, 'vimhelpgenerator_defaultlanguage', 'ja')
 let g:vimhelpgenerator_defaultoverrider = get(g:, 'vimhelpgenerator_defaultoverrider', 'default')
@@ -229,7 +229,7 @@ function! s:generator.make_gitignore() "{{{
 endfunction
 "}}}
 function! s:generator.make_readme() "{{{
-  let lines = ['# '. self.name, '']
+  let lines = ['# '. self.name. '.vim', '', '## Docs', 'see `:h '. self.name. '`']
   let readme_file = self.rootpath. '/README.md'
   if !filereadable(readme_file)
     call writefile(lines, readme_file)
@@ -287,12 +287,12 @@ function! s:generator._contents() "{{{
 endfunction
 "}}}
 function! s:generator._introduction() "{{{
-  let lines = [self.sep_l, self._caption(self.words.introduction, 'introduction'), '', printf(self.words.introduction_preface, self.name), '', self.words.requirements, '- ', '', self.words['latest-version'], '', '']
+  let lines = [self.sep_l, self._caption(self.words.introduction, 'introduction'), '', printf(self.words.introduction_preface, self.name), '', self.words['latest-version'], '', '']
   return lines
 endfunction
 "}}}
 function! s:generator._usage() "{{{
-  let lines = [self.sep_l, self._caption(self.words.usage, 'usage'), '', '']
+  let lines = [self.sep_l, self._caption(self.words.usage, 'usage'), '', '', '']
   return lines
 endfunction
 "}}}
@@ -602,8 +602,8 @@ endfunction
 "==================
 "generator
 function! s:_ja_words() "{{{
-  return {'contents': '目次', 'introduction': '概要', 'introduction_preface': '*%s* は～するVimプラグインです。',
-    \ 'requirements': '要件:', 'latest-version': '最新版:', 'usage': '使い方', 'interface': 'インターフェイス',
+  return {'contents': '目次', 'introduction': '概要', 'introduction_preface': '*%s* は',
+    \ 'latest-version': '最新版:', 'usage': '使い方', 'interface': 'インターフェイス',
     \ 'variables': '変数', 'default-value': '既定値: ', 'commands': 'コマンド', 'buffer-local-command': 'バッファローカルなコマンド',
     \ 'lines': '行', 'default': '既定:', 'whole-file': 'ファイル全体', 'key-mappings': 'キーマッピング', 'enablemodes': '有効モード',
     \ 'buffer-local-mapping': 'バッファローカルなマッピング', 'defaultmappings_global': 'デフォルトマッピング(グローバル)', 'defaultmappings_local': 'デフォルトマッピング(バッファローカル)', 'defaultmappings': 'デフォルトマッピング', 'localdefaultmappings': 'ローカルデフォルトマッピング',
@@ -614,7 +614,7 @@ endfunction
 "}}}
 function! s:_en_words() "{{{
   return {'contents': 'CONTENTS', 'introduction': 'INTRODUCTION', 'introduction_preface': '*%s* is a Vim plugin ',
-    \ 'requirements': 'Requirements:', 'latest-version': 'Latest version:', 'usage': 'USAGE', 'interface': 'INTERFACE',
+    \ 'latest-version': 'Latest version:', 'usage': 'USAGE', 'interface': 'INTERFACE',
     \ 'variables': 'VARIABLES', 'default-value': 'default value: ', 'commands': 'COMMANDS', 'buffer-local-command': 'buffer local command',
     \ 'lines': 'lines', 'default': 'default:', 'whole-file': 'whole file', 'key-mappings': 'KEY-MAPPINGS', 'enablemodes': '有効モード',
     \ 'buffer-local-mapping': 'buffer local mapping', 'defaultmappings_global': 'default mappings (global)', 'defaultmappings_local': 'default mapping (buffer local)', 'defaultmappings': 'default mappings', 'localdefaultmappings': 'local default mappings',
