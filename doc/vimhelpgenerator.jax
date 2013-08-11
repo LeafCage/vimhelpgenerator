@@ -116,6 +116,8 @@ g:vimhelpgenerator_contents			*g:vimhelpgenerator_contents*
 	{overrider-name}に、'' か "" を指定する。
 	そうすることで{overrider-name}の指定を無しに等しくすることが出来る。
 	|vimhelpgenerator-overrider|
+	ヘルプファイルがすでに存在するとき、安全のために末尾に "1" をつけた名
+	前で生成される。
 
 
 ------------------------------------------------------------------------------
