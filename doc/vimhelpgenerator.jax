@@ -1,0 +1,199 @@
+*vimhelpgenerator.txt*	vimプラグインのヘルプファイルを自動生成する。
+
+Version: 0.1
+Author:  LeafCage <leafcage+vim @ gmail.com>
+License : MIT license  {{{
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+    OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}}}
+
+==============================================================================
+目次						*vimhelpgenerator-contents*
+
+概要				|vimhelpgenerator-introduction|
+使い方				|vimhelpgenerator-usage|
+インターフェイス		|vimhelpgenerator-interface|
+変数				|vimhelpgenerator-variables|
+コマンド			|vimhelpgenerator-commands|
+関数				|vimhelpgenerator-functions|
+overriderについて		|vimhelpgenerator-overrider|
+
+
+==============================================================================
+概要						*vimhelpgenerator-introduction*
+
+*vimhelpgenerator* はプラグインを構成するファイルからヘルプを自動生成するVimプ
+ラグインです。ヘルプファイル作成の負担を減らすために開発されました。
+新規作成に対応。更新には非対応。
+ちなみにこのヘルプファイルは |vimhelpgenerator|で作られたのを元にしています。
+ベータ版なので仕様が安定していない。ご了承してお使いください。
+
+
+==============================================================================
+使い方						*vimhelpgenerator-usage*
+
+ヘルプファイルを作成したいプラグインの、いずれかのファイルを開いて
+|:VimHelpGenerator|を実行する。
+確認プロンプトが出るので e で実行継続する。
+作成後、自動的に作成されたファイルが開かれるので、そのまま編集をする。
+
+
+==============================================================================
+インターフェイス				*vimhelpgenerator-interface*
+
+------------------------------------------------------------------------------
+変数						*vimhelpgenerator-variables*
+
+g:vimhelpgenerator_version			*g:vimhelpgenerator_version*
+	既定値: "Version :"
+	ヘルプ先頭に表示される "Version :" の行に表示される文字。
+
+
+g:vimhelpgenerator_author			*g:vimhelpgenerator_author*
+	既定値: "Author  :"
+	ヘルプ先頭に表示される "Author  :" の行に表示される文字。
+
+
+g:vimhelpgenerator_license			*g:vimhelpgenerator_license*
+	既定値: "vimhelpgenerator/mit_license"
+	ヘルプ先頭に表示されるライセンス表示は、'runtimepath'の通っている場所
+	にあるこのファイルの内容が読み込まれて挿入される。
+
+
+g:vimhelpgenerator_modeline			*g:vimhelpgenerator_modeline*
+	既定値: "vim:tw=78:ts=8:ft=help:norl:noet:fen:fdl=0:"
+	ヘルプファイル末尾に挿入されるモードライン。
+
+
+g:vimhelpgenerator_defaultlanguage	*g:vimhelpgenerator_defaultlanguage*
+	既定値: "ja"
+	作成するヘルプファイルの言語。現在 "ja" か "en"。
+
+
+g:vimhelpgenerator_defaultoverrider	*g:vimhelpgenerator_defaultoverrider*
+	既定値: "default"
+	generator のオーバーライドに使われる{overrider-name}。
+	autoload/vimhelpgenerator/overrider/{overrider-name} という具合に利用
+	される。|vimhelpgenerator-overrider|
+
+
+g:vimhelpgenerator_contents			*g:vimhelpgenerator_contents*
+	既定値: >
+	{'contents': 1, 'introduction': 1, 'usage': 1, 'interface': 1,
+	\ 'variables': 1, 'commands': 1, 'key-mappings': 1, 'functions': 1,
+	\ 'todo': 1, 'changelog': 1,}
+<	ヘルプファイル表示項目。0にした項目は非表示になる。また、数値を指定す
+	ることで、表示順を操作できる。数値が若い項目の方が先に表示される。
+	同じ数値の項目は、"contents", "introduction", "usage", "interface",
+	"variables", "commands", "key-mappings", "functions", "todo",
+	"changelog" の順位で表示される。
+
+
+------------------------------------------------------------------------------
+コマンド					*vimhelpgenerator-commands*
+
+:VimHelpGenerator [{overrider-name} [{path}]]	*:VimHelpGenerator*
+	現在編集中のファイルの所属するプラグインを推定して、ドキュメントを作成
+	する。{overrider-name}が指定されたなら、
+	|g:vimhelpgenerator_defaultoverrider|の代わりにそれをソースとして使う。
+	{path}が指定されたなら、指定されたプラグインのドキュメントを作成する。
+	{overrider-name}を指定せずに{path}だけ指定したいのなら、
+	{overrider-name}に、'' か "" を指定する。
+	そうすることで{overrider-name}の指定を無しに等しくすることが出来る。
+	|vimhelpgenerator-overrider|
+
+
+------------------------------------------------------------------------------
+関数						*vimhelpgenerator-functions*
+
+						*vimhelpgenerator#generate*
+vimhelpgenerator#generate([{overrider-name}, [{path}]])
+	|:VimHelpGenerator|の実装。
+
+
+==============================================================================
+overriderについて				*vimhelpgenerator-overrider*
+
+overrider はヘルプファイルを作成するのに利用される generator という辞書の、関
+数群や値群を上書きすることが出来る。これは generator が初期化される際に
+overrider と|extend()|されているためである。generator は
+|vimhelpgenerator#generate()|の中で、以下のように呼び出されている。 >
+  call generator.make_gitignore()		".gitignoreを作成
+  call generator.make_readme()			"README.mdを作成
+  let lines = generator.build_helplines()	"helpに使う行を生成
+  let path = generator.make_help(lines)		"helpファイルを作成
+これらの中で例えば .gitignore を作らせないように挙動を変更させたければ、何もし
+ない .make_gitignore() を定義したoverriderを作ればいい。
+generator.build_helplines()の中ではさらにいくつかの関数が呼び出されているが、
+それらを上書きすることでも、個々の挙動を変更できる。
+
+overriderは、'runtimepath' が通った autoload/vimhelpgenerator/overrider/ の中
+に任意の名前{overrider-name}の {overrider-name}.vim を作成し、辞書を返す関数
+vimhelpgenerator#overrider#{overrider-name}#generator() を返すことで作成する。
+この中で新しく定義された変数や関数以外は、本来の generatorの変数や関数が使用さ
+れる。
+overriderは{overrider-name}をコマンド引数に渡すか、
+|g:vimhelpgenerator_defaultoverrider|にあらかじめ使用したい{overrider-name}を
+指定して利用する。
+
+generatorの要素
+	name			プラグイン名
+	rootpath		プラグインのルートパス
+	variables		収集した変数
+	commands		収集したコマンド
+	globalkeymappings	収集したキーマッピング（グローバル）
+	localkeymappings	収集したキーマッピング（バッファローカル）
+	functions		収集した関数
+	words			ヘルプで使用する言葉を定義した辞書
+	lang			ヘルプで使われる言語
+				|g:vimhelpgenerator_defaultlanguage|
+	make_gitignore()	.gitignoreファイルを作る
+	make_readme()		README.mdファイルを作る
+	make_help()		doc/{help-name}.{txt,jax,etc...}ファイルを作る
+	build_helplines()	ヘルプの中身を組み立てる
+	_contents()		目次を作成
+	_introduction()		概要を作成
+	_usage()		使い方を作成
+	_interface()		インターフェイスを作成
+	_variables()		変数を作成
+	_commands()		コマンドを作成
+	_keymappings()		キーマッピングを作成
+	_functions()		関数を作成
+	_todo()			TODOを作成
+	_changelog		更新履歴を作成
+
+	_caption()		以下の形式のような文字列を生成する >
+		CONTENTS	*{plugin-name}-contents*
+<	_interface_caption()	以下の形式のような文字列を生成する >
+		g:example	*g:example*
+<	_contentskeys()		|g:vimhelpgenerator_contents|の要素の内、非0で
+				順序に乗っ取って並び替えて、定義されていないイ
+				ンターフェイス要素を除いた要素のリストを返す
+	_contents_caption	以下の形式のような文字列を生成する >
+		INTRODUCTION	|example-introduction|
+<	__append_commands_lines()	コマンド文字列をヘルプ用に加工してリス
+				トに追加する
+	_build_commandhelpstr()	コマンド文字列をヘルプ表示用に加工する
+	__append_keymapping_lines()	keymappingsの各要素をソートし、表示用
+				に加工してリストに追加する
+	__append_defaultkeymappinglist_lines()	デフォルトマッピング一覧表示を
+				作成する
+
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:noet:fen:fdl=0:
