@@ -71,7 +71,7 @@ g:vimhelpgenerator_author			*g:vimhelpgenerator_author*
 
 
 g:vimhelpgenerator_license			*g:vimhelpgenerator_license*
-	既定値: "vimhelpgenerator/mit_license"
+	既定値: "vimhelpgenerator/MIT"
 	ヘルプ先頭に表示されるライセンス表示は、'runtimepath'の通っている場所
 	にあるこのファイルの内容が読み込まれて挿入される。
 
@@ -117,8 +117,8 @@ g:vimhelpgenerator_contents			*g:vimhelpgenerator_contents*
 	{overrider-name}に、'' か "" を指定する。
 	そうすることで{overrider-name}の指定を無しに等しくすることが出来る。
 	|vimhelpgenerator-overrider|
-	ヘルプファイルがすでに存在するとき、安全のために末尾に "1" をつけた名
-	前で生成される。
+	ヘルプファイルがすでに存在するとき、安全のために末尾に "1" を添付した
+	名前で生成される。
 
 
 ------------------------------------------------------------------------------
@@ -196,6 +196,13 @@ generatorの要素
 				に加工してリストに追加する
 	__append_defaultkeymappinglist_lines()	デフォルトマッピング一覧表示を
 				作成する
+
+
+==============================================================================
+TODO						*vimhelpgenerator-todo*
+
+- testを作成する
+- licenseを独立項目として扱えるようにする
 
 
 ==============================================================================

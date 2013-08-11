@@ -357,7 +357,7 @@ function! s:generator._functions() "{{{
 endfunction
 "}}}
 function! s:generator._todo() "{{{
-  let lines = [self.sep_l, self._caption(self.words.todo, 'todo'), '', '']
+  let lines = [self.sep_l, self._caption(self.words.todo, 'todo'), '', '', '']
   return lines
 endfunction
 "}}}
