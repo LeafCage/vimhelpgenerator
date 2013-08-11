@@ -1,7 +1,6 @@
 *vimhelpgenerator.txt*	vimプラグインのヘルプファイルを自動生成する。
 
-Version: 0.1
-Author:  LeafCage <leafcage+vim @ gmail.com>
+Author  : LeafCage <leafcage+vim @ gmail.com>
 License : MIT license  {{{
     Permission is hereby granted, free of charge, to any person obtaining
     a copy of this software and associated documentation files (the
@@ -62,11 +61,13 @@ overriderについて		|vimhelpgenerator-overrider|
 g:vimhelpgenerator_version			*g:vimhelpgenerator_version*
 	既定値: "Version :"
 	ヘルプ先頭に表示される "Version :" の行に表示される文字。
+	空文字にすると省略される。
 
 
 g:vimhelpgenerator_author			*g:vimhelpgenerator_author*
 	既定値: "Author  :"
 	ヘルプ先頭に表示される "Author  :" の行に表示される文字。
+	空文字にすると省略される。
 
 
 g:vimhelpgenerator_license			*g:vimhelpgenerator_license*
