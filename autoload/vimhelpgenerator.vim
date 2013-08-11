@@ -9,7 +9,7 @@ let g:vimhelpgenerator_defaultlanguage = get(g:, 'vimhelpgenerator_defaultlangua
 let g:vimhelpgenerator_defaultoverrider = get(g:, 'vimhelpgenerator_defaultoverrider', 'default')
 let s:vimhelpgenerator_contents = {'contents': 1, 'introduction': 1, 'usage': 1,
   \ 'interface': 1, 'variables': 1, 'commands': 1, 'key-mappings': 1, 'functions': 1,
-  \ 'todo': 1, 'changelog': 1,}
+  \ 'setting': 0, 'todo': 1, 'changelog': 1,}
 let g:vimhelpgenerator_contents = get(g:, 'vimhelpgenerator_contents', {})
 call extend(g:vimhelpgenerator_contents, s:vimhelpgenerator_contents, 'keep')
 
@@ -280,7 +280,7 @@ function! s:generator._contents() "{{{
   let lines = ['', self.sep_l, self._caption(self.words.contents, 'contents'), '',]
   let contents = self._contentskeys()
   for c in filter(contents, 'v:val!="contents"')
-    call add(lines, self._contents_caption(self.words[c], c))
+    call add(lines, self._contents_caption(self.words[c], c, (c=~'s$'?'  ':'')))
   endfor
   call extend(lines, ['', ''])
   return lines
@@ -353,6 +353,11 @@ function! s:generator._functions() "{{{
     call extend(lines, self._interface_caption(printf('%s(%s)', func, self.functions[func].param), func))
     call extend(lines, ['', ''])
   endfor
+  return lines
+endfunction
+"}}}
+function! s:generator._setting() "{{{
+  let lines = [self.sep_l, self._caption(self.words.setting, 'setting'), '']
   return lines
 endfunction
 "}}}
@@ -609,7 +614,7 @@ function! s:_ja_words() "{{{
     \ 'buffer-local-mapping': 'バッファローカルなマッピング', 'defaultmappings_global': 'デフォルトマッピング(グローバル)', 'defaultmappings_local': 'デフォルトマッピング(バッファローカル)', 'defaultmappings': 'デフォルトマッピング', 'localdefaultmappings': 'ローカルデフォルトマッピング',
     \ 'modeshortname': {'n': 'ノーマル', 'x': 'ビジュアル', 's': 'セレクト', 'o': 'オペレータ', 'i': 'インサート', 'c': 'コマンドライン'},
     \ 'modename': {'n': 'ノーマルモード', 'x': 'ビジュアルモード', 's': 'セレクトモード', 'o': 'オペレータモード', 'i': 'インサートモード', 'c': 'コマンドライン'},
-    \ 'functions': '関数', 'todo': 'TODO', 'changelog': '更新履歴', }
+    \ 'functions': '関数', 'setting': '設定', 'todo': 'TODO', 'changelog': '更新履歴', }
 endfunction
 "}}}
 function! s:_en_words() "{{{
@@ -620,7 +625,7 @@ function! s:_en_words() "{{{
     \ 'buffer-local-mapping': 'buffer local mapping', 'defaultmappings_global': 'default mappings (global)', 'defaultmappings_local': 'default mapping (buffer local)', 'defaultmappings': 'default mappings', 'localdefaultmappings': 'local default mappings',
     \ 'modeshortname': {'n': 'normal', 'x': 'visual', 's': 'select', 'o': 'operator', 'i': 'insert', 'c': 'commandline'},
     \ 'modename': {'n': 'normal mode', 'x': 'visual mode', 's': 'select mode', 'o': 'operator mode', 'i': 'insert mode', 'c': 'commandline'},
-    \ 'functions': 'FUNCTIONS', 'todo': 'TODO', 'changelog': 'CHANGELOG', }
+    \ 'functions': 'FUNCTIONS', 'setting': 'SETTING', 'todo': 'TODO', 'changelog': 'CHANGELOG', }
 endfunction
 "}}}
 function! s:generator._caption(title, tag) dict "{{{
