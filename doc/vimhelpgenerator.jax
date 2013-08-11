@@ -27,9 +27,9 @@ License : MIT license  {{{
 概要				|vimhelpgenerator-introduction|
 使い方				|vimhelpgenerator-usage|
 インターフェイス		|vimhelpgenerator-interface|
-変数				|vimhelpgenerator-variables|
-コマンド			|vimhelpgenerator-commands|
-関数				|vimhelpgenerator-functions|
+  変数				  |vimhelpgenerator-variables|
+  コマンド			  |vimhelpgenerator-commands|
+  関数				  |vimhelpgenerator-functions|
 overriderについて		|vimhelpgenerator-overrider|
 
 
@@ -38,9 +38,11 @@ overriderについて		|vimhelpgenerator-overrider|
 
 *vimhelpgenerator* はプラグインを構成するファイルからヘルプを自動生成するVimプ
 ラグインです。ヘルプファイル作成の負担を減らすために開発されました。
+プラグインの変数、コマンド、キーマップ、関数を収集して、テンプレートに則って出
+力します。
 新規作成に対応。更新には非対応。
 ちなみにこのヘルプファイルは |vimhelpgenerator|で作られたのを元にしています。
-ベータ版なので仕様が安定していない。ご了承してお使いください。
+ベータ版なので仕様が安定していません。ご了承してお使いください。
 
 
 ==============================================================================
@@ -110,15 +112,20 @@ g:vimhelpgenerator_contents			*g:vimhelpgenerator_contents*
 
 :VimHelpGenerator [{overrider-name} [{path}]]	*:VimHelpGenerator*
 	現在編集中のファイルの所属するプラグインを推定して、ドキュメントを作成
-	する。{overrider-name}が指定されたなら、
-	|g:vimhelpgenerator_defaultoverrider|の代わりにそれをソースとして使う。
-	{path}が指定されたなら、指定されたプラグインのドキュメントを作成する。
+	する。
+	{overrider-name}が指定されたなら、|g:vimhelpgenerator_defaultoverrider|
+	の代わりにそれを{overrider}として使う|vimhelpgenerator-overrider|。
+	{path}が指定されたなら、指定された{path}のプラグインのドキュメントを作
+	成する。
 	{overrider-name}を指定せずに{path}だけ指定したいのなら、
-	{overrider-name}に、'' か "" を指定する。
-	そうすることで{overrider-name}の指定を無しに等しくすることが出来る。
-	|vimhelpgenerator-overrider|
+	{overrider-name}に、'' か "" を指定することで{overrider-name}の指定を
+	無しに等しくすることが出来る。
+
 	ヘルプファイルがすでに存在するとき、安全のために末尾に "1" を添付した
 	名前で生成される。
+	変数のうち、型が辞書のものは、正常に既定値を取得できない。また、そうで
+	なくても変数の既定値は正確ではないので、利用者が確認し手直しする必要が
+	ある。
 
 
 ------------------------------------------------------------------------------
@@ -136,10 +143,10 @@ overrider はヘルプファイルを作成するのに利用される generator
 数群や値群を上書きすることが出来る。これは generator が初期化される際に
 overrider と|extend()|されているためである。generator は
 |vimhelpgenerator#generate()|の中で、以下のように呼び出されている。 >
-  call generator.make_gitignore()		".gitignoreを作成
-  call generator.make_readme()			"README.mdを作成
-  let lines = generator.build_helplines()	"helpに使う行を生成
-  let path = generator.make_help(lines)		"helpファイルを作成
+	call generator.make_gitignore()			".gitignoreを作成
+	call generator.make_readme()			"README.mdを作成
+	let lines = generator.build_helplines()		"helpに使う行を生成
+	let path = generator.make_help(lines)		"helpファイルを作成
 これらの中で例えば .gitignore を作らせないように挙動を変更させたければ、何もし
 ない .make_gitignore() を定義したoverriderを作ればいい。
 generator.build_helplines()の中ではさらにいくつかの関数が呼び出されているが、
@@ -203,6 +210,8 @@ TODO						*vimhelpgenerator-todo*
 
 - testを作成する
 - licenseを独立項目として扱えるようにする
+- 設定(*-setting*)項目を追加
+- インターフェイス項目は目次で一段階インデントする
 
 
 ==============================================================================
