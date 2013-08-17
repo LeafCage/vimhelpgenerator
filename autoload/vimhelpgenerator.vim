@@ -132,12 +132,7 @@ function! s:collector._add_variables(idx) "{{{
   let linestr = self.lines[a:idx]
   let autoloadvar = self.autoload_prefix=='' ? '' : matchstr(linestr, 'let\s\+\zs'. self.autoload_prefix. '\S\+\ze\+\s*=')
   if autoloadvar != ''
-    let vallist = s:_add_var(self.variables, autoloadvar)
-    let val = matchstr(linestr, 'let\s\+'. autoloadvar. '\s*\zs=.*')
-    if val != ''
-      let val = s:_join_val_line_continuation(val, self.lines, a:idx)
-      call s:_add_val(vallist, val, autoloadvar)
-    endif
+    call self.__add_variables(autoloadvar, a:idx)
   endif
 
   let i = 1
@@ -146,12 +141,7 @@ function! s:collector._add_variables(idx) "{{{
     if var == '' || var =~# 'g:loaded_'
       return
     endif
-    let vallist = s:_add_var(self.variables, var)
-    let val = matchstr(linestr, 'let\s\+'. var. '\s*\zs=.*')
-    if val != ''
-      let val = s:_join_val_line_continuation(val, self.lines, a:idx)
-      call s:_add_val(vallist, val, var)
-    endif
+    call self.__add_variables(var, a:idx)
     let i += 1
   endwhile
 endfunction
@@ -304,7 +294,7 @@ endfunction
 "}}}
 function! s:generator._variables() "{{{
   let lines = [self.sep_s, self._caption(self.words.variables, 'variables'), '']
-  for var in sort(keys(self.variables))
+  for var in map(sort(items(self.variables), 's:_sort_variables'), 'v:val[0]')
     call extend(lines, self._interface_caption(var, var))
     if self.variables[var].vals != []
       for val in self.variables[var].vals
@@ -376,6 +366,7 @@ endfunction
 "========================================================
 "Main
 function! vimhelpgenerator#generate(...)
+  let s:_var_order = 0
   let path = fnamemodify(expand(get(a:, 2, '%')), ':p')
   let manager = s:new_manager(path)
   if manager.is_failinit
@@ -395,7 +386,7 @@ function! vimhelpgenerator#generate(...)
     call manager.add(collector)
   endfor
   call manager.set_default_keymappings()
-  let overrider_name = get(a:, 1, g:vimhelpgenerator_defaultoverrider)
+  let overrider_name = get(a:, 1, '""')
   let overrider_name = overrider_name=~'^[''"]\+$' ? g:vimhelpgenerator_defaultoverrider : overrider_name
   let generator = s:new_generator(overrider_name, manager)
   call generator.make_gitignore()
@@ -503,8 +494,19 @@ function! s:_remove_nl_for_line_continuation(linestr) "{{{
 endfunction
 "}}}
 "variables
+function! s:collector.__add_variables(var, idx) "{{{
+  let vallist = s:_add_var(self.variables, a:var)
+  let val = matchstr(self.lines[a:idx], 'let\s\+'. a:var. '\s*\zs=.*')
+  if val != ''
+    let val = s:_join_val_line_continuation(val, self.lines, a:idx)
+    call s:_add_val(vallist, val, a:var)
+  endif
+endfunction
+"}}}
+let s:_var_order = 0
 function! s:_add_var(variables, var) "{{{
-  let a:variables[a:var] = get(a:variables, a:var, {'vals': [], 'is_dict': 0,})
+  let s:_var_order += has_key(a:variables, a:var) ? 0 : 1
+  let a:variables[a:var] = get(a:variables, a:var, {'vals': [], 'is_dict': 0, 'order': s:_var_order})
   return a:variables[a:var]
 endfunction
 "}}}
@@ -680,6 +682,11 @@ function! s:generator._contents_caption(title, tag, ...) dict "{{{
   let padding = get(a:, 1, '')
   let tabnum = 4 - (strdisplaywidth(padding. a:title) / 8)
   return printf('%s%s%s%s|%s-%s|', padding, a:title, repeat("\t", tabnum), padding, self.name, a:tag)
+endfunction
+"}}}
+"make_help variables
+function! s:_sort_variables(var1, var2) "{{{
+  return a:var1[1].order - a:var2[1].order
 endfunction
 "}}}
 "make_help commands
