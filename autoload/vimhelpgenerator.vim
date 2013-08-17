@@ -154,7 +154,8 @@ function! s:collector._add_commands(idx) "{{{
   let linestr = s:_join_line_continuation(self.lines, a:idx)
   let linestr = s:_remove_nl_for_line_continuation(linestr)
   let commandname = s:_commandname(linestr)
-  let self.commands[commandname] = s:_commandattr(linestr)
+  let s:_command_order += has_key(self.commands, commandname) ? 0 : 1
+  let self.commands[commandname] = extend(s:_commandattr(linestr), {'order': s:_command_order})
 endfunction
 "}}}
 function! s:collector._add_keymappings(idx) "{{{
@@ -170,7 +171,8 @@ function! s:collector._add_keymappings(idx) "{{{
     return | "s:_mapcommand()が誤爆したとき用
   endif
   let keymappings = options.is_buflocal ? self.localkeymappings : self.globalkeymappings
-  let keymappings[lhs] = get(keymappings, lhs, {'common': {'is_defaultmapping': 0, 'is_local': options.is_buflocal}})
+  let s:_keymapping_order += has_key(keymappings, lhs) ? 0 : 1
+  let keymappings[lhs] = get(keymappings, lhs, {'common': {'is_defaultmapping': 0, 'is_local': options.is_buflocal, 'order': s:_keymapping_order}})
   for m in ['n', 'i', 'c', 'o', 'x', 's']
     if !mode[m]
       continue
@@ -366,7 +368,7 @@ endfunction
 "========================================================
 "Main
 function! vimhelpgenerator#generate(...)
-  let s:_var_order = 0
+  let [s:_var_order, s:_command_order, s:_keymapping_order] = [0, 0, 0]
   let path = fnamemodify(expand(get(a:, 2, '%')), ':p')
   let manager = s:new_manager(path)
   if manager.is_failinit
@@ -385,6 +387,7 @@ function! vimhelpgenerator#generate(...)
     call collector.collect('functions')
     call manager.add(collector)
   endfor
+  unlet! s:_var_order s:_command_order s:_keymapping_order
   call manager.set_default_keymappings()
   let overrider_name = get(a:, 1, '""')
   let overrider_name = overrider_name=~'^[''"]\+$' ? g:vimhelpgenerator_defaultoverrider : overrider_name
@@ -503,7 +506,6 @@ function! s:collector.__add_variables(var, idx) "{{{
   endif
 endfunction
 "}}}
-let s:_var_order = 0
 function! s:_add_var(variables, var) "{{{
   let s:_var_order += has_key(a:variables, a:var) ? 0 : 1
   let a:variables[a:var] = get(a:variables, a:var, {'vals': [], 'is_dict': 0, 'order': s:_var_order})
@@ -685,13 +687,13 @@ function! s:generator._contents_caption(title, tag, ...) dict "{{{
 endfunction
 "}}}
 "make_help variables
-function! s:_sort_variables(var1, var2) "{{{
-  return a:var1[1].order - a:var2[1].order
+function! s:_sort_variables(item1, item2) "{{{
+  return a:item1[1].order - a:item2[1].order
 endfunction
 "}}}
 "make_help commands
 function! s:generator.__append_commands_lines(lines, commands) "{{{
-  for cmd in sort(keys(a:commands))
+  for cmd in map(sort(items(a:commands), 's:_sort_commands'), 'v:val[0]')
     let [commandhelpstr, range_description] = self._build_commandhelpstr(cmd)
     call extend(a:lines, self._interface_caption(commandhelpstr, ':'. cmd))
     if self.commands[cmd].is_buflocal
@@ -702,6 +704,10 @@ function! s:generator.__append_commands_lines(lines, commands) "{{{
     endif
     call extend(a:lines, ['', ''])
   endfor
+endfunction
+"}}}
+function! s:_sort_commands(item1, item2) "{{{
+  return a:item1[1].order - a:item2[1].order
 endfunction
 "}}}
 function! s:generator._build_commandhelpstr(cmd) "{{{
@@ -734,9 +740,7 @@ endfunction
 "make_help keymappings
 function! s:generator.__append_keymapping_lines(lines, keymappings, is_local) "{{{
   let baflocal_label = a:is_local ? ["\t". self.words['buffer-local-mapping']] : []
-  let s:keymappings = a:is_local ? self.localkeymappings : self.globalkeymappings
-  let lhss = sort(filter(keys(a:keymappings), 'v:val =~? ''^<Plug>\|<Leader>\|<LocalLeader>'''), 's:_sort_lhs')
-  unlet s:keymappings
+  let lhss = map(sort(filter(items(a:keymappings), 'v:val[0] =~? ''^<Plug>\|<Leader>\|<LocalLeader>'''), 's:_sort_lhs'), 'v:val[0]')
   for lhs in lhss
     call extend(a:lines, self._interface_caption(lhs, lhs))
     call extend(a:lines, baflocal_label)
@@ -767,12 +771,12 @@ function! s:generator.__append_keymapping_lines(lines, keymappings, is_local) "{
 endfunction
 "}}}
 function! s:_sort_lhs(lhs1, lhs2) "{{{
-  return s:_expr_modes(keys(s:keymappings[a:lhs2])) - s:_expr_modes(keys(s:keymappings[a:lhs1]))
+  return s:_expr_modes(a:lhs2[1]) - s:_expr_modes(a:lhs1[1])
 endfunction
 "}}}
 function! s:_expr_modes(modes) "{{{
-  let expr = map(a:modes, 'v:val=="n" ? 32 : v:val=="i" ? 16 : v:val=="x" ? 8 : v:val=="s" ? 4 : v:val=="o" ? 2 : 1')
-  return eval(join(expr, '+'))
+  let expr = map(keys(a:modes), 'v:val=="n" ? 32 : v:val=="i" ? 16 : v:val=="x" ? 8 : v:val=="s" ? 4 : v:val=="o" ? 2 : v:val=="c" ? 1 : 0')
+  return eval(join(expr, '+')) + 8000 - a:modes.common.order
 endfunction
 "}}}
 function! s:_sort_mode(m1, m2) "{{{
