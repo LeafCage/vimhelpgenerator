@@ -12,6 +12,7 @@ let s:vimhelpgenerator_contents = {'contents': 1, 'introduction': 1, 'usage': 1,
   \ 'setting': 0, 'todo': 1, 'changelog': 1,}
 let g:vimhelpgenerator_contents = get(g:, 'vimhelpgenerator_contents', {})
 call extend(g:vimhelpgenerator_contents, s:vimhelpgenerator_contents, 'keep')
+unlet s:vimhelpgenerator_contents
 
 "=============================================================================
 let s:manager = {}
@@ -132,7 +133,7 @@ function! s:collector._add_variables(idx) "{{{
   let autoloadvar = self.autoload_prefix=='' ? '' : matchstr(linestr, 'let\s\+\zs'. self.autoload_prefix. '\S\+\ze\+\s*=')
   if autoloadvar != ''
     let vallist = s:_add_var(self.variables, autoloadvar)
-    let val = matchstr(linestr, 'let\s\+'. autoloadvar. '\s*=\zs.*')
+    let val = matchstr(linestr, 'let\s\+'. autoloadvar. '\s*\zs=.*')
     if val != ''
       let val = s:_join_val_line_continuation(val, self.lines, a:idx)
       call s:_add_val(vallist, val, autoloadvar)
@@ -146,7 +147,7 @@ function! s:collector._add_variables(idx) "{{{
       return
     endif
     let vallist = s:_add_var(self.variables, var)
-    let val = matchstr(linestr, 'let\s\+'. var. '\s*=\zs.*')
+    let val = matchstr(linestr, 'let\s\+'. var. '\s*\zs=.*')
     if val != ''
       let val = s:_join_val_line_continuation(val, self.lines, a:idx)
       call s:_add_val(vallist, val, var)
@@ -508,7 +509,7 @@ function! s:_add_var(variables, var) "{{{
 endfunction
 "}}}
 function! s:_join_val_line_continuation(val, lines, idx) "{{{
-  let val = substitute(a:val, '^\s*', '', '')
+  let val = substitute(a:val, '^=\s*', '', '')
   let i = 1
   while get(a:lines, a:idx+i, '') =~ '^\s*\\'
     let val .= "\n". get(a:lines, a:idx+i, '')
