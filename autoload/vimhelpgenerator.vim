@@ -118,7 +118,7 @@ function! s:_exclude_commentline(lines) "{{{
   endwhile
 endfunction
 "}}}
-function! s:collector.gather(kind) "{{{
+function! s:collector.collect(kind) "{{{
   let funcname = '_add_'. a:kind
   let i = 0
   let len = len(self.lines)
@@ -379,10 +379,10 @@ function! vimhelpgenerator#generate(...)
 
   for scriptpath in manager.filepaths()
     let collector = s:new_collector(scriptpath, manager.rootpath)
-    call collector.gather('variables')
-    call collector.gather('commands')
-    call collector.gather('keymappings')
-    call collector.gather('functions')
+    call collector.collect('variables')
+    call collector.collect('commands')
+    call collector.collect('keymappings')
+    call collector.collect('functions')
     call manager.add(collector)
   endfor
   call manager.set_default_keymappings()
