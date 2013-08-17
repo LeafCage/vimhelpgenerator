@@ -99,7 +99,7 @@ g:vimhelpgenerator_contents			*g:vimhelpgenerator_contents*
 	既定値: >
 	{'contents': 1, 'introduction': 1, 'usage': 1, 'interface': 1,
 	\ 'variables': 1, 'commands': 1, 'key-mappings': 1, 'functions': 1,
-	\ 'todo': 1, 'changelog': 1,}
+	\ 'setting': 0, 'todo': 1, 'changelog': 1,}
 <	ヘルプファイル表示項目。0にした項目は非表示になる。また、数値を指定す
 	ることで、表示順を操作できる。数値が若い項目の方が先に表示される。
 	同じ数値の項目は、"contents", "introduction", "usage", "interface",
