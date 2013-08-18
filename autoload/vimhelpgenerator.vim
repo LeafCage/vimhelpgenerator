@@ -19,12 +19,12 @@ let s:manager = {}
 function! s:new_manager(path)
   let manager = {'name': '', 'rootpath': '', 'is_failinit': 0, 'keymappings_catalog': {'rhs': [], 'is_buflocal': [], 'modes': [], 'lhs': []}, 'elements': {'variables': {}, 'commands': {}, 'globalkeymappings': {}, 'localkeymappings': {}, 'functions': {}}}
   call extend(manager, s:manager, 'keep')
-  call manager._set_rootpath_and_name(a:path)
+  call manager._set_rootpath_and_name(filereadable(a:path) ? fnamemodify(a:path, ':h') : a:path)
   return manager
 endfunction
 function! s:manager._set_rootpath_and_name(path) "{{{
   for dir in ['after', 'autoload', 'plugin', 'syntax', 'ftplugin', 'ftdetect']
-    let findpath = finddir(dir, (filereadable(a:path) ? fnamemodify(a:path, ':h') : a:path). ';**/vimfiles')
+    let findpath = finddir(dir, a:path. ';**/vimfiles')
     if findpath == ''
       continue
     endif
