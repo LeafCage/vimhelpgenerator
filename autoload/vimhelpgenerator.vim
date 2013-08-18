@@ -250,7 +250,7 @@ function! s:generator.build_helplines() "{{{
   let self.sep_s = repeat('-', 78)
   let lines = []
 
-  call extend(lines, ['*'. self.name. '.txt*', ''])
+  call extend(lines, ['*'. self.name. ".txt*\t". self.words.summary, ''])
   if g:vimhelpgenerator_version != ''
     call add(lines, g:vimhelpgenerator_version)
   endif
@@ -616,7 +616,7 @@ endfunction
 "==================
 "generator
 function! s:_ja_words() "{{{
-  return {'contents': '目次', 'introduction': '概要', 'introduction_preface': '*%s* は',
+  return {'summary': '要約', 'contents': '目次', 'introduction': '概要', 'introduction_preface': '*%s* は',
     \ 'latest-version': '最新版:', 'usage': '使い方', 'interface': 'インターフェイス',
     \ 'variables': '変数', 'default-value': '既定値: ', 'commands': 'コマンド', 'buffer-local-command': 'バッファローカルなコマンド',
     \ 'lines': '行', 'default': '既定:', 'whole-file': 'ファイル全体', 'key-mappings': 'キーマッピング', 'enablemodes': '有効モード',
@@ -627,7 +627,7 @@ function! s:_ja_words() "{{{
 endfunction
 "}}}
 function! s:_en_words() "{{{
-  return {'contents': 'CONTENTS', 'introduction': 'INTRODUCTION', 'introduction_preface': '*%s* is a Vim plugin ',
+  return {'summary': 'a summary', 'contents': 'CONTENTS', 'introduction': 'INTRODUCTION', 'introduction_preface': '*%s* is a Vim plugin ',
     \ 'latest-version': 'Latest version:', 'usage': 'USAGE', 'interface': 'INTERFACE',
     \ 'variables': 'VARIABLES', 'default-value': 'default value: ', 'commands': 'COMMANDS', 'buffer-local-command': 'buffer local command',
     \ 'lines': 'lines', 'default': 'default:', 'whole-file': 'whole file', 'key-mappings': 'KEY-MAPPINGS', 'enablemodes': '有効モード',
