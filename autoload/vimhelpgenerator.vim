@@ -19,15 +19,12 @@ let s:manager = {}
 function! s:new_manager(path)
   let manager = {'name': '', 'rootpath': '', 'is_failinit': 0, 'keymappings_catalog': {'rhs': [], 'is_buflocal': [], 'modes': [], 'lhs': []}, 'elements': {'variables': {}, 'commands': {}, 'globalkeymappings': {}, 'localkeymappings': {}, 'functions': {}}}
   call extend(manager, s:manager, 'keep')
-  let save_cd = getcwd()
-  silent exe 'lcd '. (filereadable(a:path) ? fnamemodify(a:path, ':h') : a:path)
-  call manager._set_rootpath_and_name()
-  silent exe 'lcd '. save_cd
+  call manager._set_rootpath_and_name(a:path)
   return manager
 endfunction
-function! s:manager._set_rootpath_and_name() "{{{
+function! s:manager._set_rootpath_and_name(path) "{{{
   for dir in ['after', 'autoload', 'plugin', 'syntax', 'ftplugin', 'ftdetect']
-    let findpath = finddir(dir, '.;**/vimfiles')
+    let findpath = finddir(dir, (filereadable(a:path) ? fnamemodify(a:path, ':h') : a:path). ';**/vimfiles')
     if findpath == ''
       continue
     endif
