@@ -19,12 +19,15 @@ let s:manager = {}
 function! s:new_manager(path)
   let manager = {'name': '', 'rootpath': '', 'is_failinit': 0, 'keymappings_catalog': {'rhs': [], 'is_buflocal': [], 'modes': [], 'lhs': []}, 'elements': {'variables': {}, 'commands': {}, 'globalkeymappings': {}, 'localkeymappings': {}, 'functions': {}}}
   call extend(manager, s:manager, 'keep')
-  call manager._set_rootpath_and_name(a:path)
+  let save_cd = getcwd()
+  silent exe 'lcd '. (filereadable(a:path) ? fnamemodify(a:path, ':h') : a:path)
+  call manager._set_rootpath_and_name()
+  silent exe 'lcd '. save_cd
   return manager
 endfunction
-function! s:manager._set_rootpath_and_name(path) "{{{
+function! s:manager._set_rootpath_and_name() "{{{
   for dir in ['after', 'autoload', 'plugin', 'syntax', 'ftplugin', 'ftdetect']
-    let findpath = finddir(dir, a:path. ';**/vimfiles')
+    let findpath = finddir(dir, '.;**/vimfiles')
     if findpath == ''
       continue
     endif
@@ -372,6 +375,7 @@ function! vimhelpgenerator#generate(...)
   let path = fnamemodify(expand(get(a:, 2, '%')), ':p')
   let manager = s:new_manager(path)
   if manager.is_failinit
+    echohl WarningMsg |echo 'VimHelpGenerator: failed.' |echohl NONE
     return {'mes': 'VimHelpGenerator: failed.'}
   endif
   if s:_confirm(manager)
