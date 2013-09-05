@@ -15,14 +15,14 @@ call extend(g:vimhelpgenerator_contents, s:vimhelpgenerator_contents, 'keep')
 unlet s:vimhelpgenerator_contents
 
 "=============================================================================
-let s:manager = {}
-function! s:new_manager(path)
-  let manager = {'name': '', 'rootpath': '', 'is_failinit': 0, 'keymappings_catalog': {'rhs': [], 'is_buflocal': [], 'modes': [], 'lhs': []}, 'elements': {'variables': {}, 'commands': {}, 'globalkeymappings': {}, 'localkeymappings': {}, 'functions': {}}}
-  call extend(manager, s:manager, 'keep')
-  call manager._set_rootpath_and_name(filereadable(a:path) ? fnamemodify(a:path, ':h') : a:path)
-  return manager
+let s:pathholder = {}
+function! s:new_pathholder(path)
+  let pathholder = {'name': '', 'rootpath': '', 'is_failinit': 0, 'keymappings_catalog': {'rhs': [], 'is_buflocal': [], 'modes': [], 'lhs': []}, 'elements': {'variables': {}, 'commands': {}, 'globalkeymappings': {}, 'localkeymappings': {}, 'functions': {}}}
+  call extend(pathholder, s:pathholder, 'keep')
+  call pathholder._set_rootpath_and_name(filereadable(a:path) ? fnamemodify(a:path, ':h') : a:path)
+  return pathholder
 endfunction
-function! s:manager._set_rootpath_and_name(path) "{{{
+function! s:pathholder._set_rootpath_and_name(path) "{{{
   for dir in ['after', 'autoload', 'plugin', 'syntax', 'ftplugin', 'ftdetect']
     let findpath = finddir(dir, a:path. ';**/vimfiles')
     if findpath == ''
@@ -46,7 +46,7 @@ function! s:manager._set_rootpath_and_name(path) "{{{
   let self.is_failinit = 1
 endfunction
 "}}}
-function! s:manager.filepaths() "{{{
+function! s:pathholder.get_filepaths() "{{{
   let pluginpaths = globpath(self.rootpath. '/plugin', '**/*.vim')
   let autoloadpaths = globpath(self.rootpath. '/autoload', self.name. '/**/*.vim')
   let autoloadfile = globpath(self.rootpath. '/autoload', self.name. '.vim')
@@ -54,7 +54,7 @@ function! s:manager.filepaths() "{{{
   return self.filepaths
 endfunction
 "}}}
-function! s:manager.add(collector) "{{{
+function! s:pathholder.add(collector) "{{{
   call map(self.elements.variables, 's:_combine_variablesvals(a:collector.variables, v:key, v:val)')
   call extend(self.elements.variables, a:collector.variables, 'keep')
   try
@@ -73,7 +73,7 @@ function! s:manager.add(collector) "{{{
   call extend(self.elements.functions, a:collector.functions, 'keep')
 endfunction
 "}}}
-function! s:manager.set_default_keymappings() "{{{
+function! s:pathholder.set_default_keymappings() "{{{
   for lhs in keys(self.elements.globalkeymappings) + keys(self.elements.localkeymappings)
     if lhs =~? '^<Plug>'
       call s:_find_pluginmapping_from_rhss(lhs, self.elements.globalkeymappings, self.elements.localkeymappings, self.keymappings_catalog)
@@ -200,9 +200,9 @@ endfunction
 "}}}
 "==================
 let s:generator = {}
-function! s:new_generator(overrider_name, manager)
-  let generator = {'name': a:manager.name, 'rootpath': a:manager.rootpath, 'variables': {}, 'commands': {}, 'globalkeymappings': {}, 'localkeymappings': {}, 'functions': {}, 'words': (g:vimhelpgenerator_defaultlanguage==?'ja' ? s:_ja_words() : s:_en_words()), 'lang': g:vimhelpgenerator_defaultlanguage}
-  call extend(generator, a:manager.elements)
+function! s:new_generator(overrider_name, pathholder)
+  let generator = {'name': a:pathholder.name, 'rootpath': a:pathholder.rootpath, 'variables': {}, 'commands': {}, 'globalkeymappings': {}, 'localkeymappings': {}, 'functions': {}, 'words': (g:vimhelpgenerator_defaultlanguage==?'ja' ? s:_ja_words() : s:_en_words()), 'lang': g:vimhelpgenerator_defaultlanguage}
+  call extend(generator, a:pathholder.elements)
   call extend(generator, s:generator, 'keep')
   try
     call extend(generator, vimhelpgenerator#overrider#{a:overrider_name}#generator())
@@ -370,46 +370,46 @@ endfunction
 function! vimhelpgenerator#generate(...)
   let [s:_var_order, s:_command_order, s:_keymapping_order] = [0, 0, 0]
   let path = fnamemodify(expand(get(a:, 2, '%')), ':p')
-  let manager = s:new_manager(path)
-  if manager.is_failinit
+  let pathholder = s:new_pathholder(path)
+  if pathholder.is_failinit
     echohl WarningMsg |echo 'VimHelpGenerator: failed.' |echohl NONE
     return {'mes': 'VimHelpGenerator: failed.'}
   endif
-  if s:_confirm(manager)
+  if s:_confirm(pathholder)
     return {'mes': 'canceled'}
   endif
   redraw
 
-  for scriptpath in manager.filepaths()
-    let collector = s:new_collector(scriptpath, manager.rootpath)
+  for scriptpath in pathholder.get_filepaths()
+    let collector = s:new_collector(scriptpath, pathholder.rootpath)
     call collector.collect('variables')
     call collector.collect('commands')
     call collector.collect('keymappings')
     call collector.collect('functions')
-    call manager.add(collector)
+    call pathholder.add(collector)
   endfor
   unlet! s:_var_order s:_command_order s:_keymapping_order
-  call manager.set_default_keymappings()
+  call pathholder.set_default_keymappings()
   let overrider_name = get(a:, 1, '""')
   let overrider_name = overrider_name=~'^[''"]\+$' ? g:vimhelpgenerator_defaultoverrider : overrider_name
-  let generator = s:new_generator(overrider_name, manager)
+  let generator = s:new_generator(overrider_name, pathholder)
   call generator.make_gitignore()
   call generator.make_readme()
   let lines = generator.build_helplines()
   let path = generator.make_help(lines)
   silent exe 'edit '. path
-  return manager
+  return pathholder
 endfunction
 
 
 
 "======================================
 "main
-function! s:_confirm(manager) "{{{
-  let input = input(printf('%s  "%s"  [e]xecute/[r]ename/[q]uit: ', a:manager.rootpath, a:manager.name), '', )
+function! s:_confirm(pathholder) "{{{
+  let input = input(printf('%s  "%s"  [e]xecute/[r]ename/[q]uit: ', a:pathholder.rootpath, a:pathholder.name), '', )
   if input == 'r'
-    let a:manager.name = input('input plugin-name: ', a:manager.name)
-    if a:manager.name == ''
+    let a:pathholder.name = input('input plugin-name: ', a:pathholder.name)
+    if a:pathholder.name == ''
       return 1
     endif
     let input = 'e'
@@ -420,7 +420,7 @@ function! s:_confirm(manager) "{{{
 endfunction
 "}}}
 "==================
-"manager
+"pathholder
 "add()
 function! s:_combine_variablesvals(collectorvariables, var, elm) "{{{
   if has_key(a:collectorvariables, a:var)
