@@ -1,9 +1,11 @@
 if exists('s:save_cpo')| finish| endif
 let s:save_cpo = &cpo| set cpo&vim
 "=============================================================================
+let g:vimhelpgenerator_virtualhelpopencmd = get(g:, 'vimhelpgenerator_virtualhelpopencmd', 'split')
 let g:vimhelpgenerator_version = get(g:, 'vimhelpgenerator_version', 'Version :')
 let g:vimhelpgenerator_author = get(g:, 'vimhelpgenerator_author', 'Author  :')
 let g:vimhelpgenerator_license = get(g:, 'vimhelpgenerator_license', 'vimhelpgenerator/MIT')
+let g:vimhelpgenerator_uri = get(g:, 'vimhelpgenerator_uri', 'https://github.com/user/')
 let g:vimhelpgenerator_modeline = get(g:, 'vimhelpgenerator_modeline', 'vim:tw=78:ts=8:ft=help:norl:noet:fen:fdl=0:')
 let g:vimhelpgenerator_defaultlanguage = get(g:, 'vimhelpgenerator_defaultlanguage', 'ja')
 let g:vimhelpgenerator_defaultoverrider = get(g:, 'vimhelpgenerator_defaultoverrider', 'default')
@@ -15,194 +17,15 @@ call extend(g:vimhelpgenerator_contents, s:vimhelpgenerator_contents, 'keep')
 unlet s:vimhelpgenerator_contents
 
 "=============================================================================
-let s:pathholder = {}
-function! s:new_pathholder(path)
-  let pathholder = {'name': '', 'rootpath': '', 'is_failinit': 0, 'keymappings_catalog': {'rhs': [], 'is_buflocal': [], 'modes': [], 'lhs': []}, 'elements': {'variables': {}, 'commands': {}, 'globalkeymappings': {}, 'localkeymappings': {}, 'functions': {}}}
-  call extend(pathholder, s:pathholder, 'keep')
-  call pathholder._set_rootpath_and_name(filereadable(a:path) ? fnamemodify(a:path, ':h') : a:path)
-  return pathholder
-endfunction
-function! s:pathholder._set_rootpath_and_name(path) "{{{
-  for dir in ['after', 'autoload', 'plugin', 'syntax', 'ftplugin', 'ftdetect']
-    let findpath = finddir(dir, a:path. ';**/vimfiles')
-    if findpath == ''
-      continue
-    endif
-    let self.rootpath = fnamemodify(findpath, ':p:h:h')
-    let self.name = fnamemodify(self.rootpath, ':t:r')
-    if self.name == 'vimfiles'
-      continue
-    endif
-    for expr in ['/plugin/*.vim', '/syntax/*.vim', '/autoload/*.vim', '/autoload/*/']
-      let file = glob(self.rootpath. expr)
-      if file == '' || file =~ "\n"
-        continue
-      endif
-      let self.name = fnamemodify(file, expr=='/autoload/*/' ? ':h:t' : ':t:r')
-      return
-    endfor
-    return
-  endfor
-  let self.is_failinit = 1
-endfunction
-"}}}
-function! s:pathholder.get_filepaths() "{{{
-  let pluginpaths = globpath(self.rootpath. '/plugin', '**/*.vim')
-  let autoloadpaths = globpath(self.rootpath. '/autoload', self.name. '/**/*.vim')
-  let autoloadfile = globpath(self.rootpath. '/autoload', self.name. '.vim')
-  let self.filepaths = filter(split(pluginpaths. "\n". autoloadpaths. "\n". autoloadfile, '\n'), 'v:val!=""')
-  return self.filepaths
-endfunction
-"}}}
-function! s:pathholder.add(collector) "{{{
-  call map(self.elements.variables, 's:_combine_variablesvals(a:collector.variables, v:key, v:val)')
-  call extend(self.elements.variables, a:collector.variables, 'keep')
-  try
-    call extend(self.elements.commands, a:collector.commands, 'error')
-  catch /E737/
-    echoerr 'VimHelpGenerator: 同名のコマンドが複数定義されています。'. v:exception
-  endtry
-  call map(self.elements.localkeymappings, 's:_combine_keymapping(a:collector.localkeymappings, v:key, v:val)')
-  call extend(self.elements.localkeymappings, a:collector.localkeymappings, 'keep')
-  call map(self.elements.globalkeymappings, 's:_combine_keymappings(a:collector.globalkeymappings, v:key, v:val)')
-  call extend(self.elements.globalkeymappings, a:collector.globalkeymappings, 'keep')
-  call extend(self.keymappings_catalog.rhs, a:collector.keymappings_catalog.rhs)
-  call extend(self.keymappings_catalog.is_buflocal, a:collector.keymappings_catalog.is_buflocal)
-  call extend(self.keymappings_catalog.modes, a:collector.keymappings_catalog.modes)
-  call extend(self.keymappings_catalog.lhs, a:collector.keymappings_catalog.lhs)
-  call extend(self.elements.functions, a:collector.functions, 'keep')
-endfunction
-"}}}
-function! s:pathholder.set_default_keymappings() "{{{
-  for lhs in keys(self.elements.globalkeymappings) + keys(self.elements.localkeymappings)
-    if lhs =~? '^<Plug>'
-      call s:_find_pluginmapping_from_rhss(lhs, self.elements.globalkeymappings, self.elements.localkeymappings, self.keymappings_catalog)
-    endif
-  endfor
-  unlet self.keymappings_catalog
-endfunction
-"}}}
-"==================
-let s:collector = {}
-function! s:new_collector(path, rootpath)
-  let collector = {'variables': {}, 'commands': {}, 'globalkeymappings': {}, 'localkeymappings': {}, 'keymappings_catalog': {'rhs': [], 'is_buflocal': [], 'modes': [], 'lhs': []}, 'functions': {},}
-  let collector.path = fnamemodify(a:path, ':p')
-  let collector.autoload_prefix = s:_autoload_prefix(a:path, a:rootpath)
-  let collector.lines = filter(readfile(a:path), 'v:val !~ "^\\s*$"')
-  call s:_exclude_commentline(collector.lines)
-  call extend(collector, s:collector, 'keep')
-  return collector
-endfunction
-function! s:_autoload_prefix(path, rootpath) "{{{
-  let localpath = substitute(a:path, a:rootpath. '/', '', '')
-  if localpath !~ '^autoload'
-    return ''
-  endif
-  return fnamemodify(localpath, ':r:s?^autoload/??:gs?/?#?'). '#'
-endfunction
-"}}}
-function! s:_exclude_commentline(lines) "{{{
-  let i = 0
-  let len = len(a:lines)
-  while i < len
-    if a:lines[i] !~ '^\s*"'
-      let i += 1
-      continue
-    endif
-    call remove(a:lines, i)
-    let len -= 1
-    while get(a:lines, i, '') =~ '^\s*\\'
-      call remove(a:lines, i)
-      let len -= 1
-    endwhile
-  endwhile
-endfunction
-"}}}
-function! s:collector.collect(kind) "{{{
-  let funcname = '_add_'. a:kind
-  let i = 0
-  let len = len(self.lines)
-  while i < len
-    call self[funcname](i)
-    let i += 1
-  endwhile
-endfunction
-"}}}
-function! s:collector._add_variables(idx) "{{{
-  let linestr = self.lines[a:idx]
-  let autoloadvar = self.autoload_prefix=='' ? '' : matchstr(linestr, 'let\s\+\zs'. self.autoload_prefix. '\S\+\ze\+\s*=')
-  if autoloadvar != ''
-    call self.__add_variables(autoloadvar, a:idx)
-  endif
-
-  let i = 1
-  while 1
-    let var = matchstr(linestr, 'g:\w\+', 0, i)
-    if var == '' || var =~# 'g:loaded_'
-      return
-    endif
-    call self.__add_variables(var, a:idx)
-    let i += 1
-  endwhile
-endfunction
-"}}}
-function! s:collector._add_commands(idx) "{{{
-  let linestr = self.lines[a:idx]
-  if linestr !~ '^\s*com\%[mand]!\?\s'
-    return
-  endif
-  let linestr = s:_join_line_continuation(self.lines, a:idx)
-  let linestr = s:_remove_nl_for_line_continuation(linestr)
-  let commandname = s:_commandname(linestr)
-  let s:_command_order += has_key(self.commands, commandname) ? 0 : 1
-  let self.commands[commandname] = extend(s:_commandattr(linestr), {'order': s:_command_order})
-endfunction
-"}}}
-function! s:collector._add_keymappings(idx) "{{{
-  let mapcommand = s:_mapcommand(self.lines[a:idx])
-  if mapcommand == ''
-    return
-  endif
-  let linestr = s:_join_line_continuation(self.lines, a:idx)
-  let linestr = s:_remove_nl_for_line_continuation(linestr)
-  let [mode, remap] = s:_keymap_mode(mapcommand)
-  let [options, lhs, rhs] = s:_keymap_elements(linestr, mapcommand)
-  if lhs == '' || rhs == ''
-    return | "s:_mapcommand()が誤爆したとき用
-  endif
-  let keymappings = options.is_buflocal ? self.localkeymappings : self.globalkeymappings
-  let s:_keymapping_order += has_key(keymappings, lhs) ? 0 : 1
-  let keymappings[lhs] = get(keymappings, lhs, {'common': {'is_defaultmapping': 0, 'is_local': options.is_buflocal, 'order': s:_keymapping_order}})
-  for m in ['n', 'i', 'c', 'o', 'x', 's']
-    if !mode[m]
-      continue
-    endif
-    let keymappings[lhs][m] = get(keymappings[lhs], m, s:_neutral_keymappingmodes())
-    call add(keymappings[lhs][m].rhs, rhs)
-  endfor
-  call add(self.keymappings_catalog.rhs, rhs)
-  call add(self.keymappings_catalog.is_buflocal, options.is_buflocal)
-  call add(self.keymappings_catalog.modes, keys(filter(mode, 'v:val==1')))
-  call add(self.keymappings_catalog.lhs, lhs)
-endfunction
-"}}}
-function! s:collector._add_functions(idx) "{{{
-  let linestr = self.lines[a:idx]
-  let func = matchlist(linestr, '^\s*fu\%[nction]!\?\s\+\(.\+\)(\(.*\))')
-  if func == []
-    return
-  endif
-  let [funcname, param] = func[1:2]
-  let self.functions[funcname] = {'param': substitute(substitute(param, '\w\+\|\.\.\.', '{\0}', 'g'), '_', '-', 'g')}
-  let self.functions[funcname].is_global = funcname =~ '^\u\|^[^s]:'. (self.autoload_prefix == '' ? '' : '\|'. self.autoload_prefix)
-  let self.functions[funcname].is_dict = funcname =~ '\.\|\['
-endfunction
-"}}}
+aug vimhelpgenerator
+  au!
+  au VimLeavePre *    call <SID>_clear_virtualbufs()
+aug END
 "==================
 let s:generator = {}
-function! s:new_generator(overrider_name, pathholder)
-  let generator = {'name': a:pathholder.name, 'rootpath': a:pathholder.rootpath, 'variables': {}, 'commands': {}, 'globalkeymappings': {}, 'localkeymappings': {}, 'functions': {}, 'words': (g:vimhelpgenerator_defaultlanguage==?'ja' ? s:_ja_words() : s:_en_words()), 'lang': g:vimhelpgenerator_defaultlanguage}
-  call extend(generator, a:pathholder.elements)
+function! s:new_generator(overrider_name, elementsholder)
+  let generator = {'name': a:elementsholder.pluginname, 'rootpath': a:elementsholder.rootpath, 'variables': {}, 'commands': {}, 'globalkeymappings': {}, 'localkeymappings': {}, 'functions': {}, 'words': (g:vimhelpgenerator_defaultlanguage==?'ja' ? s:_ja_words() : s:_en_words()), 'lang': g:vimhelpgenerator_defaultlanguage}
+  call extend(generator, a:elementsholder.elements)
   call extend(generator, s:generator, 'keep')
   try
     call extend(generator, vimhelpgenerator#overrider#{a:overrider_name}#generator())
@@ -240,6 +63,29 @@ function! s:generator.make_help(lines) "{{{
   endif
   call writefile(a:lines, helppath)
   return helppath
+endfunction
+"}}}
+function! s:generator.open_virtualhelp(lines) "{{{
+  let is_finded = 0
+  for winnr in range(1, winnr('$'))
+    if getbufvar(winbufnr(winnr), 'vimhelpgenerator_virtualbuffer') != ''
+      exe winnr. 'wincmd w'
+      let is_finded = 1
+      break
+    endif
+  endfor
+  if !is_finded && g:vimhelpgenerator_virtualhelpopencmd =~ 'sp\%[lit]\|vs\%[plit]\|new\|vne\%[w]\|sv\%[iew]'
+    silent exe g:vimhelpgenerator_virtualhelpopencmd
+  endif
+  silent exe 'edit +se\ noro\ bt=nofile\ ft=help\ tw=78\ ts=8\ noet ['. self.name. (self.lang ==? 'ja' ? '.jax': '.txt'). ']'
+  let b:vimhelpgenerator_virtualbuffer = 1
+  call add(s:virtualhelp_bufnrs, bufnr('%'))
+  let save_ul = &undolevels
+  setl undolevels=-1
+  silent %delete _
+  call append(1, a:lines)
+  silent delete _
+  let &l:ul = save_ul
 endfunction
 "}}}
 function! s:generator.build_helplines() "{{{
@@ -280,7 +126,10 @@ function! s:generator._contents() "{{{
 endfunction
 "}}}
 function! s:generator._introduction() "{{{
-  let lines = [self.sep_l, self._caption(self.words.introduction, 'introduction'), '', printf(self.words.introduction_preface, self.name), '', self.words['latest-version'], '', '']
+  let latest_ver_lines = g:vimhelpgenerator_uri=='' ? [] : [self.words['latest-version'], g:vimhelpgenerator_uri. self.name. '.vim']
+  let lines = [self.sep_l, self._caption(self.words.introduction, 'introduction'), '', printf(self.words.introduction_preface, self.name), '']
+  call extend(lines, latest_ver_lines)
+  call extend(lines, ['', ''])
   return lines
 endfunction
 "}}}
@@ -367,10 +216,9 @@ endfunction
 
 "========================================================
 "Main
-function! vimhelpgenerator#generate(...)
-  let [s:_var_order, s:_command_order, s:_keymapping_order] = [0, 0, 0]
+function! vimhelpgenerator#generate(is_virtual, ...)
   let path = fnamemodify(expand(get(a:, 2, '%')), ':p')
-  let pathholder = s:new_pathholder(path)
+  let pathholder = uptodate#vimelements#new_pathholder(path)
   if pathholder.is_failinit
     echohl WarningMsg |echo 'VimHelpGenerator: failed.' |echohl NONE
     return {'mes': 'VimHelpGenerator: failed.'}
@@ -380,25 +228,20 @@ function! vimhelpgenerator#generate(...)
   endif
   redraw
 
-  for scriptpath in pathholder.get_filepaths()
-    let collector = s:new_collector(scriptpath, pathholder.rootpath)
-    call collector.collect('variables')
-    call collector.collect('commands')
-    call collector.collect('keymappings')
-    call collector.collect('functions')
-    call pathholder.add(collector)
-  endfor
-  unlet! s:_var_order s:_command_order s:_keymapping_order
-  call pathholder.set_default_keymappings()
+  let elementholder = uptodate#vimelements#collect(pathholder, ['variables', 'commands', 'keymappings', 'functions'])
   let overrider_name = get(a:, 1, '""')
   let overrider_name = overrider_name=~'^[''"]\+$' ? g:vimhelpgenerator_defaultoverrider : overrider_name
-  let generator = s:new_generator(overrider_name, pathholder)
-  call generator.make_gitignore()
-  call generator.make_readme()
+  let generator = s:new_generator(overrider_name, elementholder)
   let lines = generator.build_helplines()
-  let path = generator.make_help(lines)
-  silent exe 'edit '. path
-  return pathholder
+  if a:is_virtual
+    call generator.open_virtualhelp(lines)
+  else
+    call generator.make_gitignore()
+    call generator.make_readme()
+    let path = generator.make_help(lines)
+    silent exe 'edit '. path
+  endif
+  return generator
 endfunction
 
 
@@ -406,10 +249,10 @@ endfunction
 "======================================
 "main
 function! s:_confirm(pathholder) "{{{
-  let input = input(printf('%s  "%s"  [e]xecute/[r]ename/[q]uit: ', a:pathholder.rootpath, a:pathholder.name), '', )
+  let input = input(printf('%s  "%s"  [e]xecute/[r]ename/[q]uit: ', a:pathholder.rootpath, a:pathholder.pluginname), '', )
   if input == 'r'
-    let a:pathholder.name = input('input plugin-name: ', a:pathholder.name)
-    if a:pathholder.name == ''
+    let a:pathholder.pluginname = input('input plugin-name: ', a:pathholder.pluginname)
+    if a:pathholder.pluginname == ''
       return 1
     endif
     let input = 'e'
@@ -419,195 +262,14 @@ function! s:_confirm(pathholder) "{{{
   endif
 endfunction
 "}}}
-"==================
-"pathholder
-"add()
-function! s:_combine_variablesvals(collectorvariables, var, elm) "{{{
-  if has_key(a:collectorvariables, a:var)
-    call extend(a:elm.vals, a:collectorvariables[a:var].vals)
-  endif
-  return a:elm
-  "elm = {'vals': [], 'is_dict': 0}
-endfunction
-"}}}
-function! s:_combine_keymappings(collectorkeymappings_lhs, lhs, elm) "{{{
-  if has_key(a:collectorkeymappings_lhs, a:lhs)
-    call extend(a:elm, a:collectorkeymappings_lhs[a:lhs])
-  endif
-  return a:elm
-endfunction
-"}}}
-function! s:_combine_keymapping(collectorkeymappings, lhs, modes) "{{{
-  if !has_key(a:collectorkeymappings, a:lhs)
-    return a:modes
-  endif
-  for m in ['n', 'i', 'x', 's', 'o', 'c']
-    if has_key(a:collectorkeymappings[a:lhs], m)
-      let a:modes[m] = get(a:modes, m, s:_neutral_keymappingmodes())
-      call extend(a:modes[m].rhs, a:collectorkeymappings[a:lhs][m].rhs)
+"autocmd
+let s:virtualhelp_bufnrs = []
+function! s:_clear_virtualbufs() "{{{
+  for bufnr in s:virtualhelp_bufnrs
+    if buflisted(bufnr)
+      call setbufvar(bufnr, "&bl", 0)
     endif
   endfor
-  return a:modes
-endfunction
-"}}}
-"set_default_keymappings()
-function! s:_find_pluginmapping_from_rhss(pluginmapping, globalkeymappings, localkeymappings, keymappings_catalog) "{{{
-  let i = 1
-  while 1
-    let idx = match(a:keymappings_catalog.rhs, a:pluginmapping, 0, i)
-    if idx == -1
-      return
-    endif
-    let keymappings = a:keymappings_catalog.is_buflocal[idx] ? a:localkeymappings : a:globalkeymappings
-    let keymappings[a:keymappings_catalog.lhs[idx]].common.is_defaultmapping = 1
-    let keymappings = has_key(a:localkeymappings, a:pluginmapping) ? a:localkeymappings : a:globalkeymappings
-    for m in a:keymappings_catalog.modes[idx]
-      if !has_key(keymappings[a:pluginmapping], m)
-        continue
-      endif
-      if a:keymappings_catalog.is_buflocal[idx]
-        call s:_add_without_duplicate(keymappings[a:pluginmapping][m].localdefaultmappings, a:keymappings_catalog.lhs[idx])
-      else
-        call s:_add_without_duplicate(keymappings[a:pluginmapping][m].defaultmappings, a:keymappings_catalog.lhs[idx])
-      endif
-    endfor
-    let i += 1
-  endwhile
-endfunction
-"}}}
-function! s:_add_without_duplicate(list, expr) "{{{
-  if index(a:list, a:expr) == -1
-    call add(a:list, a:expr)
-  endif
-endfunction
-"}}}
-"==================
-"collector
-function! s:_join_line_continuation(lines, idx) "{{{
-  let linestr = a:lines[a:idx]
-  let i = 1
-  while get(a:lines, a:idx+i, '') =~ '^\s*\\'
-    let linestr .= "\n". get(a:lines, a:idx+i, '')
-    let i += 1
-  endwhile
-  return linestr
-endfunction
-"}}}
-function! s:_remove_nl_for_line_continuation(linestr) "{{{
-  return substitute(a:linestr, '\s*\n\s*\\', ' ', 'g')
-endfunction
-"}}}
-"variables
-function! s:collector.__add_variables(var, idx) "{{{
-  let vallist = s:_add_var(self.variables, a:var)
-  let val = matchstr(self.lines[a:idx], 'let\s\+'. a:var. '\s*\zs=.*')
-  if val != ''
-    let val = s:_join_val_line_continuation(val, self.lines, a:idx)
-    call s:_add_val(vallist, val, a:var)
-  endif
-endfunction
-"}}}
-function! s:_add_var(variables, var) "{{{
-  let s:_var_order += has_key(a:variables, a:var) ? 0 : 1
-  let a:variables[a:var] = get(a:variables, a:var, {'vals': [], 'is_dict': 0, 'order': s:_var_order})
-  return a:variables[a:var]
-endfunction
-"}}}
-function! s:_join_val_line_continuation(val, lines, idx) "{{{
-  let val = substitute(a:val, '^=\s*', '', '')
-  let i = 1
-  while get(a:lines, a:idx+i, '') =~ '^\s*\\'
-    let val .= "\n". get(a:lines, a:idx+i, '')
-    let i += 1
-  endwhile
-  return val
-endfunction
-"}}}
-function! s:_add_val(vallist, val, var) "{{{
-  let val = a:val
-  let jval = substitute(val, '\s*\n\s*\\\s*', ' ', 'g')
-  if jval =~ 'get(\s*g:,\s*["'']'. substitute(a:var, 'g:', '', ''). '["''],\s*.\+)\|exists(\s*["'']'. a:var. '["'']\s*)'
-    let jval = substitute(jval, 'get(\s*g:,\s*["'']'. substitute(a:var, 'g:', '', ''). '["''],\s*\(.\+\))', '\1', '')
-    let jval = substitute(jval, 'exists(\s*["'']\+'. a:var. '["'']\+\s*)\s*?\s*'. a:var. '\s*:\s*', '', '')
-    let jval = substitute(jval, '!exists(\s*["'']'. a:var. '["'']\s*)\s*?\s*\(.*\)\s*:\s*'. a:var, '\1', '')
-    let val = jval
-  endif
-  if a:val =~ '^{'
-    let a:vallist.is_dict = 1
-  endif
-  if index(a:vallist.vals, val) == -1
-    call add(a:vallist.vals, val)
-  endif
-endfunction
-"}}}
-"commands
-function! s:_commandname(linestr) "{{{
-  return matchstr(a:linestr, 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*\zs\u\S*\ze')
-endfunction
-"}}}
-function! s:_commandattr(linestr) "{{{
-  let attr = {'nargs': '', 'range': {}, 'is_bang': 0, 'is_register': 0, 'is_buflocal': 0}
-  let attr.nargs = matchstr(a:linestr, 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-nargs=\zs.')
-  let attr.range.count = matchstr(a:linestr, 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-count\s') ? 0 : matchstr(a:linestr, 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-count=\zs\d\+')
-  let attr.range.range = matchstr(a:linestr, 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-range\s') ? 'current line' : matchstr(a:linestr, 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-range=\zs\S\+')
-  let attr.is_bang = a:linestr =~ 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-bang'
-  let attr.is_register = a:linestr =~ 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-register'
-  let attr.is_buflocal = a:linestr =~ 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*-buffer'
-  return attr
-endfunction
-"}}}
-"keymappings
-function! s:_mapcommand(linestr) "{{{
-  return matchstr(a:linestr, '^\s*\%(sil\%[ent!]\s\+\)*\zs\%([nvxoic]m\%[ap]\|s\?map!\?\|[oic]\?no\%[remap]!\?\|[nvx]n\%[oremap]\|snor\%[emap]\)\ze\s')
-endfunction
-"}}}
-function! s:_keymap_mode(mapcommand) "{{{
-  let mode = {'n': 0, 'i': 0, 'c': 0, 'o': 0, 'x': 0, 's': 0}
-  let remap = a:mapcommand =~ '[oicnvxs]n\|no' ? 0 : 1
-  let modestrlist = remap ? matchlist(a:mapcommand, '\(\l\?\)m\%[ap]\(!\?\)')[1:2] : matchlist(a:mapcommand, '\(\l\?\)n\%[oremap]\(!\?\)')[1:2]
-  call s:__set_mode(mode, modestrlist)
-  return [mode, remap]
-endfunction
-"}}}
-function! s:__set_mode(mode, modestrlist) "{{{
-  if a:modestrlist[1] == '!'
-    let a:mode.i = 1
-    let a:mode.c = 1
-  elseif a:modestrlist[0] == ''
-    let a:mode.n = 1
-    let a:mode.x = 1
-    let a:mode.s = 1
-    let a:mode.o = 1
-  elseif a:modestrlist[0] == 'v'
-    let a:mode.x = 1
-    let a:mode.s = 1
-  else
-    let a:mode[a:modestrlist[0]] = 1
-  endif
-endfunction
-"}}}
-function! s:_keymap_elements(linestr, mapcommand) "{{{
-  let options = {'is_buflocal': 0, 'is_silent': 0, 'is_unique': 0, 'is_expr': 0}
-  let optionsstr = matchstr(a:linestr, '\%(\%(<buffer>\|<silent>\|<expr>\|<unique>\|<special>\|<script>\)\s*\)\+')
-  let options.is_buflocal = optionsstr=~'<buffer>'
-  let options.is_silent = optionsstr=~'<silent>'
-  let options.is_unique = optionsstr=~'<unique>'
-  let options.is_expr = optionsstr=~'<expr>'
-
-  let lhs = matchstr(a:linestr, a:mapcommand. '\s\+'. optionsstr. '\zs\S\+')
-  let rhs = matchstr(a:linestr, a:mapcommand. '\s\+'. optionsstr. escape(lhs, '~$.*\'). '\s\+\zs.\+')
-  let lhs = s:_substitute_uppercase_sameformat(lhs)
-  let rhs = s:_substitute_uppercase_sameformat(rhs)
-  return [options, lhs, rhs]
-endfunction
-"}}}
-function! s:_substitute_uppercase_sameformat(str) "{{{
-  let str = substitute(substitute(a:str, '<\c\([CSM]-\)\?\(\a\{2}\)>', '<\U\1\2\E>', 'g'), '\c<\([CSM]-\)\?up>', '<\u\1Up>', 'g')
-  return substitute(str, '\c<\([CSM]-\)\?\(\a\)\(\a\{2,}\)>', '<\u\1\u\2\L\3\E>', 'g')
-endfunction
-"}}}
-function! s:_neutral_keymappingmodes() "{{{
-  return {'rhs': [], 'defaultmappings': [], 'localdefaultmappings': []}
 endfunction
 "}}}
 "==================

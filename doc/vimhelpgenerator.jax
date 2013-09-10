@@ -44,6 +44,9 @@ overriderについて		|vimhelpgenerator-overrider|
 ちなみにこのヘルプファイルは |vimhelpgenerator|で作られたのを元にしています。
 ベータ版なので仕様が安定していません。ご了承してお使いください。
 
+最新版:
+https://github.com/LeafCage/vimhelpgenerator.vim
+
 
 ==============================================================================
 使い方						*vimhelpgenerator-usage*
@@ -59,6 +62,11 @@ overriderについて		|vimhelpgenerator-overrider|
 
 ------------------------------------------------------------------------------
 変数						*vimhelpgenerator-variables*
+
+g:vimhelpgenerator_virtualhelpopencmd	*g:vimhelpgenerator_virtualhelpopencmd*
+	既定値: "split"
+	|:VimHelpGeneratorVirtual|を実行したときの仮想バッファの開き方。
+
 
 g:vimhelpgenerator_version			*g:vimhelpgenerator_version*
 	既定値: "Version :"
@@ -76,6 +84,12 @@ g:vimhelpgenerator_license			*g:vimhelpgenerator_license*
 	既定値: "vimhelpgenerator/MIT"
 	ヘルプ先頭に表示されるライセンス表示は、'runtimepath'の通っている場所
 	にあるこのファイルの内容が読み込まれて挿入される。
+
+
+g:vimhelpgenerator_uri				*g:vimhelpgenerator_uri*
+	既定値: "https://github.com/user/"
+	「概要」の部分に表示されるプラグインのURI。
+	空文字にすると無効。
 
 
 g:vimhelpgenerator_modeline			*g:vimhelpgenerator_modeline*
@@ -127,12 +141,20 @@ g:vimhelpgenerator_contents			*g:vimhelpgenerator_contents*
 	なくても変数の既定値は正確ではないので、利用者が確認し手直しする必要が
 	ある。
 
+						*:VimHelpGeneratorVirtual*
+:VimHelpGeneratorVirtual [{overrider-name} [{path}]]
+	作成したファイルを仮想バッファで開く。このバッファは書き込みが出来ない
+	。新しい機能を追加したときに、既存のヘルプに要素を追記したいときなどに
+	使う。仮想バッファの内容の一部を既存のヘルプにコピーペーストするといい
+	。バッファの開かれ方には|g:vimhelpgenerator_virtualhelpopencmd|が使わ
+	れる。
+
 
 ------------------------------------------------------------------------------
 関数						*vimhelpgenerator-functions*
 
 						*vimhelpgenerator#generate*
-vimhelpgenerator#generate([{overrider-name}, [{path}]])
+vimhelpgenerator#generate({is-virtual}, [{overrider-name}, [{path}]])
 	|:VimHelpGenerator|の実装。
 
 
