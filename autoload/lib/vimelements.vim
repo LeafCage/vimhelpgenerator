@@ -1,17 +1,17 @@
-"UPTODATE: 1378833133.
-if uptodate#uptodate#isnot_this_uptodate(expand('<sfile>:p'))
+"UPTODATE: 1378923547.
+if lib#uptodate#isnot_this_uptodate(expand('<sfile>:p'))
   finish
 endif
 if exists('s:save_cpo')| finish| endif
 let s:save_cpo = &cpo| set cpo&vim
 "=============================================================================
-let s:IGNORE_MONODIR = 'uptodate'
+let s:IGNORE_MONODIR = 'lib'
 let s:pathholder = {'pluginname': '', 'realname': '', 'rootpath': '', 'is_monoplugin': 0}
 "realname: _find_actualname()で見つける前の名前の方がプラグイン名としては適切
 "   なものがあるのでこれに待避させる。
 "is_monoplugin: 対象がpluginspluginならfileをうまく取ってこないことがあるので、
 "   autoload/以下に1つしかdirがないときは全てのファイルを取得するようにする。
-function! uptodate#vimelements#new_pathholder(...)
+function! lib#vimelements#new_pathholder(...)
   let path = get(a:, 1, expand('%:p'))
   let collecttargets = get(a:, 2, [])
   let pathholder = {'is_failinit': 1}
@@ -243,25 +243,33 @@ function! s:collector._add_unitesources(idx) "{{{
 endfunction
 "}}}
 function! s:collector._add_unitesources_onetime() "{{{
-  let idx = match(self.lines, 'unite#define_source')
-  if idx==-1
+  let idxes = []
+  let idx = match(self.lines, 'unite#define_source', 0)
+  while idx!=-1
+    call add(idxes, idx)
+    let idx += 1
+    let idx = match(self.lines, 'unite#define_source', idx)
+  endwhile
+  if idxes==[]
     return
   endif
-  let sourcevar = matchstr(self.lines[idx], 'unite#define_source(\s*\zs\S\+\ze\s*)')
-  let sourcename = matchstr(self.lines, '^\s*let\s\+'. sourcevar. '\%(.name\|\[["'']name["'']\]\)\s*=')
-  if sourcename==''
-    let idx = match(self.lines, '^\s*let\s\+'. sourcevar. '\s*=')
-    let linestr = s:_join_line_continuation(self.lines, idx)
-    let linestr = s:_remove_nl_for_line_continuation(linestr)
-    let sourcename = matchstr(linestr, '^\s*let\s\+'. sourcevar. '\s*=\s*{.*["'']name["'']\s*:\s*["'']\zs[a-z0-9_/]')
-  else
-    let sourcename = matchstr(sourcename, '^\s*let\s\+'. sourcevar. '\%(.name\|\[["'']name["'']\]\)\s*=\s*["'']\zs[a-z0-9_/]\+')
-  endif
-  if sourcename==''
-    echohl WarningMsg| echo 'unite-source-nameの取得に失敗しました。'| echohl NONE
-  else
-    call add(self.unitesources, sourcename)
-  endif
+  for idx in idxes
+    let sourcevar = matchstr(self.lines[idx], 'unite#define_source(\s*\zs\S\+\ze\s*)')
+    let sourcename = matchstr(self.lines, '^\s*let\s\+'. sourcevar. '\%(.name\|\[["'']name["'']\]\)\s*=')
+    if sourcename==''
+      let idx = match(self.lines, '^\s*let\s\+'. sourcevar. '\s*=')
+      let linestr = s:_join_line_continuation(self.lines, idx)
+      let linestr = s:_remove_nl_for_line_continuation(linestr)
+      let sourcename = matchstr(linestr, '^\s*let\s\+'. sourcevar. '\s*=\s*{.*["'']name["'']\s*:\s*["'']\zs[a-z0-9_/]')
+    else
+      let sourcename = matchstr(sourcename, '^\s*let\s\+'. sourcevar. '\%(.name\|\[["'']name["'']\]\)\s*=\s*["'']\zs[a-z0-9_/]\+')
+    endif
+    if sourcename==''
+      echohl WarningMsg| echo 'unite-source-nameの取得に失敗しました。'| echohl NONE
+    else
+      call add(self.unitesources, sourcename)
+    endif
+  endfor
 endfunction
 "}}}
 "==================
@@ -277,7 +285,8 @@ function! s:elementholder.eat(collector) "{{{
   try
     call extend(self.elements.commands, a:collector.commands, 'error')
   catch /E737/
-    echoerr '同名のコマンドが複数定義されています。'. v:exception
+    echohl WarningMsg| echom '同名のコマンドが複数定義されています。'. v:exception| echohl NONE
+    call extend(self.elements.commands, a:collector.commands, 'keep')
   endtry
   call map(self.elements.localkeymappings, 's:_combine_keymapping(a:collector.localkeymappings, v:key, v:val)')
   call extend(self.elements.localkeymappings, a:collector.localkeymappings, 'keep')
@@ -319,7 +328,7 @@ endfunction
 
 "========================================================
 "Main
-function! uptodate#vimelements#collect(...)
+function! lib#vimelements#collect(...)
   let [pathholder, collecttargets] = s:_collect_varargs(a:000)
   let elementholder = s:new_elementholder()
   let [s:_var_order, s:_command_order, s:_keymapping_order] = [0, 0, 0]
@@ -346,11 +355,11 @@ function! s:_collect_varargs(varargs) "{{{
   let type0 = type(get(a:varargs, 0, 0))
   let COLLECTTARGETS = ['variables', 'commands', 'keymappings', 'functions', 'autocmds']
   if len>=2
-    return type0==type({}) ? [a:varargs[0], a:varargs[1]] : [uptodate#vimelements#new_pathholder(a:varargs[0], a:varargs[1]), a:varargs[1]]
-  else len
-    return type0==type([]) ? [uptodate#vimelements#new_pathholder(expand('%:p'), a:varargs[0]), a:varargs[0]] : type0==type({}) ? [a:varargs[0], COLLECTTARGETS] : [uptodate#vimelements#new_pathholder(a:varargs[0]), COLLECTTARGETS]
+    return type0==type({}) ? [a:varargs[0], a:varargs[1]] : [lib#vimelements#new_pathholder(a:varargs[0], a:varargs[1]), a:varargs[1]]
+  elseif len
+    return type0==type([]) ? [lib#vimelements#new_pathholder(expand('%:p'), a:varargs[0]), a:varargs[0]] : type0==type({}) ? [a:varargs[0], COLLECTTARGETS] : [lib#vimelements#new_pathholder(a:varargs[0]), COLLECTTARGETS]
   else
-    return [uptodate#vimelements#new_pathholder(), COLLECTTARGETS]
+    return [lib#vimelements#new_pathholder(), COLLECTTARGETS]
   endif
 endfunction
 "}}}
@@ -548,12 +557,8 @@ endfunction
 "}}}
 "set_default_keymappings()
 function! s:_find_pluginmapping_from_rhss(pluginmapping, globalkeymappings, localkeymappings, keymappings_catalog) "{{{
-  let i = 1
-  while 1
-    let idx = match(a:keymappings_catalog.rhs, a:pluginmapping, 0, i)
-    if idx == -1
-      return
-    endif
+  let idx = match(a:keymappings_catalog.rhs, a:pluginmapping, 0)
+  while idx!=-1
     let keymappings = a:keymappings_catalog.is_buflocal[idx] ? a:localkeymappings : a:globalkeymappings
     let keymappings[a:keymappings_catalog.lhs[idx]].common.is_defaultmapping = 1
     let keymappings = has_key(a:localkeymappings, a:pluginmapping) ? a:localkeymappings : a:globalkeymappings
@@ -567,7 +572,8 @@ function! s:_find_pluginmapping_from_rhss(pluginmapping, globalkeymappings, loca
         call s:_add_without_duplicate(keymappings[a:pluginmapping][m].defaultmappings, a:keymappings_catalog.lhs[idx])
       endif
     endfor
-    let i += 1
+    let idx += 1
+    let idx = match(a:keymappings_catalog.rhs, a:pluginmapping, idx)
   endwhile
 endfunction
 "}}}

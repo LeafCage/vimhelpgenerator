@@ -77,7 +77,7 @@ function! s:generator.open_virtualhelp(lines) "{{{
   if !is_finded && g:vimhelpgenerator_virtualhelpopencmd =~ 'sp\%[lit]\|vs\%[plit]\|new\|vne\%[w]\|sv\%[iew]'
     silent exe g:vimhelpgenerator_virtualhelpopencmd
   endif
-  silent exe 'edit +se\ noro\ bt=nofile\ ft=help\ tw=78\ ts=8\ noet ['. self.name. (self.lang ==? 'ja' ? '.jax': '.txt'). ']'
+  silent exe 'keepj edit +se\ noro\ bt=nofile\ ft=help\ tw=78\ ts=8\ noet ['. self.name. (self.lang ==? 'ja' ? '.jax': '.txt'). ']'
   let b:vimhelpgenerator_virtualbuffer = 1
   call add(s:virtualhelp_bufnrs, bufnr('%'))
   let save_ul = &undolevels
@@ -218,7 +218,7 @@ endfunction
 "Main
 function! vimhelpgenerator#generate(is_virtual, ...)
   let path = fnamemodify(expand(get(a:, 2, '%')), ':p')
-  let pathholder = uptodate#vimelements#new_pathholder(path)
+  let pathholder = lib#vimelements#new_pathholder(path)
   if pathholder.is_failinit
     echohl WarningMsg |echo 'VimHelpGenerator: failed.' |echohl NONE
     return {'mes': 'VimHelpGenerator: failed.'}
@@ -228,7 +228,7 @@ function! vimhelpgenerator#generate(is_virtual, ...)
   endif
   redraw
 
-  let elementholder = uptodate#vimelements#collect(pathholder, ['variables', 'commands', 'keymappings', 'functions'])
+  let elementholder = lib#vimelements#collect(pathholder, ['variables', 'commands', 'keymappings', 'functions'])
   let overrider_name = get(a:, 1, '""')
   let overrider_name = overrider_name=~'^[''"]\+$' ? g:vimhelpgenerator_defaultoverrider : overrider_name
   let generator = s:new_generator(overrider_name, elementholder)
