@@ -302,17 +302,18 @@ function! s:generator._caption(title, tag) dict "{{{
 endfunction
 "}}}
 function! s:generator._interface_caption(title, tag) "{{{
+  let tag = substitute(a:tag, '\*', 'star', 'g')
   let titlelen = strdisplaywidth(a:title)
-  let taglen = strdisplaywidth(a:tag)
+  let taglen = strdisplaywidth(tag)
   if taglen <= 28 && titlelen <= 40
     let tabnum = 6 - (titlelen / 8)
-    return [printf('%s%s*%s*', a:title, repeat("\t", tabnum), a:tag)]
+    return [printf('%s%s*%s*', a:title, repeat("\t", tabnum), tag)]
   elseif taglen > 28 && titlelen < 39
     let tabnum = 5 - (titlelen / 8)
-    return [printf('%s%s*%s*', a:title, repeat("\t", tabnum), a:tag)]
+    return [printf('%s%s*%s*', a:title, repeat("\t", tabnum), tag)]
   else
     let tabnum = (78 - taglen - 2) / 8
-    return [printf('%s*%s*', repeat("\t", tabnum > 6 ? 6 : tabnum), a:tag), a:title]
+    return [printf('%s*%s*', repeat("\t", tabnum > 6 ? 6 : tabnum), tag), a:title]
   endif
 endfunction
 "}}}
