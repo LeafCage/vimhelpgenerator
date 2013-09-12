@@ -328,6 +328,12 @@ endfunction
 
 "========================================================
 "Main
+"lib#vimelements#collect()
+"lib#vimelements#collect(String path)
+"lib#vimelements#collect(Dictionary pathholder)
+"lib#vimelements#collect(List collecttargets)
+"lib#vimelements#collect(String path, List collecttargets)
+"lib#vimelements#collect(Dictionary pathholder, List collecttargets)
 function! lib#vimelements#collect(...)
   let [pathholder, collecttargets] = s:_collect_varargs(a:000)
   let elementholder = s:new_elementholder()
@@ -353,13 +359,13 @@ endfunction
 function! s:_collect_varargs(varargs) "{{{
   let len = len(a:varargs)
   let type0 = type(get(a:varargs, 0, 0))
-  let COLLECTTARGETS = ['variables', 'commands', 'keymappings', 'functions', 'autocmds']
+  let DEFAULT_COLLECTTARGETS = ['variables', 'commands', 'keymappings', 'functions', 'autocmds']
   if len>=2
     return type0==type({}) ? [a:varargs[0], a:varargs[1]] : [lib#vimelements#new_pathholder(a:varargs[0], a:varargs[1]), a:varargs[1]]
   elseif len
-    return type0==type([]) ? [lib#vimelements#new_pathholder(expand('%:p'), a:varargs[0]), a:varargs[0]] : type0==type({}) ? [a:varargs[0], COLLECTTARGETS] : [lib#vimelements#new_pathholder(a:varargs[0]), COLLECTTARGETS]
+    return type0==type([]) ? [lib#vimelements#new_pathholder(expand('%:p'), a:varargs[0]), a:varargs[0]] : type0==type({}) ? [a:varargs[0], DEFAULT_COLLECTTARGETS] : [lib#vimelements#new_pathholder(a:varargs[0]), DEFAULT_COLLECTTARGETS]
   else
-    return [lib#vimelements#new_pathholder(), COLLECTTARGETS]
+    return [lib#vimelements#new_pathholder(), DEFAULT_COLLECTTARGETS]
   endif
 endfunction
 "}}}
