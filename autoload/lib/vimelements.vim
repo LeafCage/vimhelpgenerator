@@ -1,4 +1,4 @@
-"UPTODATE: 1378953596.
+"UPTODATE: 1378959931.
 if lib#uptodate#isnot_this_uptodate(expand('<sfile>:p'))
   finish
 endif
@@ -392,6 +392,13 @@ endfunction
 "}}}
 function! s:_remove_nl_for_line_continuation(linestr) "{{{
   return substitute(a:linestr, '\s*\n\s*\\', ' ', 'g')
+endfunction
+"}}}
+function! s:_parse_exe(linestr) "{{{
+  if a:linestr !~# '^\s*\%(sil\%[ent]!\?\s*\)\?exe\%[cute]\s'
+    return a:linestr
+  endif
+  return substitute(substitute(a:linestr, '^\s*\%(sil\%[ent]!\?\s*\)\?exe\%[cute]\s\+', '', ''), '\(["'']\)\(.\{-}\)\1\s*', '\2 ', 'g')
 endfunction
 "}}}
 "variables
