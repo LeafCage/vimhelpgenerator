@@ -1,4 +1,4 @@
-"UPTODATE: 1378923547.
+"UPTODATE: 1378953596.
 if lib#uptodate#isnot_this_uptodate(expand('<sfile>:p'))
   finish
 endif
@@ -436,7 +436,7 @@ endfunction
 "}}}
 "commands
 function! s:_commandname(linestr) "{{{
-  return matchstr(a:linestr, 'com\%[mand]!\?\s\+\%(-.\+\s\+\)*\zs\u\S*\ze')
+  return matchstr(a:linestr, 'com\%[mand]!\?\s\+\%(-\S\+\s\+\)*\zs\u\S*\ze')
 endfunction
 "}}}
 function! s:_commandattr(linestr) "{{{
