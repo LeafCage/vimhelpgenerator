@@ -7,7 +7,7 @@ if !exists('g:uptodate_is_firstloaded')
   let s:firstloaded_is_this = 1
 endif
 
-let s:thisfile_updatetime = 1378919817
+let s:thisfile_updatetime = 1378957620
 try
   if exists('g:uptodate_latesttime') && g:uptodate_latesttime >= s:thisfile_updatetime
     finish
@@ -79,8 +79,8 @@ function! s:sfile.do_runtime() "{{{
     return
   endif
   let self._.is_runtiming = 1
-  let self._.addedlazyrtp = s:_add_runtimepath_for_neobundlelazy()
-  exe 'runtime! '. self.runtimecmd_args
+  let self._.addedlazyrtp = s:new_addedlazyrtp()
+  exe 'runtime!' self.runtimecmd_args
 endfunction
 "}}}
 function! s:sfile.is_older_afterall() "{{{
@@ -101,8 +101,30 @@ function! s:sfile.cleanup() "{{{
   if !self.is_firstloaded
     return
   endif
-  exe 'set rtp-='. self._.addedlazyrtp
+  call self._.addedlazyrtp.untap()
   call self._.reset()
+endfunction
+"}}}
+"==================
+let s:addedlazyrtp = {}
+function! s:new_addedlazyrtp() "{{{
+  let addedlazyrtp = {'rtp': ''}
+  call extend(addedlazyrtp, s:addedlazyrtp, 'keep')
+  call addedlazyrtp.tap()
+  return addedlazyrtp
+endfunction
+"}}}
+function! s:addedlazyrtp.tap() "{{{
+  if !exists('*neobundle#config#get_neobundles')
+    return
+  endif
+  let self.rtp = join(map(filter(neobundle#config#get_neobundles(),'v:val.lazy'), 'v:val.rtp'), ',')
+  let vimrt_idx = match(substitute(&rtp, '\\', '/', 'g'), substitute($VIMRUNTIME, '\\', '/', 'g'))-1
+  let &rtp = &rtp[:vimrt_idx]. self.rtp. &rtp[(vimrt_idx):]
+endfunction
+"}}}
+function! s:addedlazyrtp.untap() "{{{
+  exe 'set rtp-='. self.rtp
 endfunction
 "}}}
 
@@ -152,14 +174,35 @@ function! lib#uptodate#apply_uptodate_to_others() "{{{
   endif
   let crrftime = getftime(crrpath)
   let i = 0
+  let updatedpaths = []
   for path in filter(paths, 'v:val!=crrpath')
-    if getftime(path) < crrftime
-      call writefile(readfile(crrpath, 'b'), path, 'b')
-      let i += 1
+    if getftime(path) >= crrftime
+      continue
     endif
+    call writefile(readfile(crrpath, 'b'), path, 'b')
+    call add(updatedpaths, path)
+    let i += 1
   endfor
   redraw
   echo '他の'. i. 'つのスクリプトが更新されました。'
+  echo join(updatedpaths, "\n")
+endfunction
+"}}}
+
+function! lib#uptodate#show_managed_scripts() "{{{
+  let pats = map(copy(g:uptodate_filenamepatterns), '"autoload/". v:val')
+  let addedrtp = s:new_addedlazyrtp()
+  let managedscripts = []
+  for pat in pats
+    let findpaths = findfile(pat, &rtp, -1)
+    call extend(managedscripts, findpaths)
+  endfor
+  call addedrtp.untap()
+  for pat in g:uptodate_filenamepatterns
+    let findpaths = findfile(pat, g:uptodate_cellardir, -1)
+    call extend(managedscripts, findpaths)
+  endfor
+  ec join(map(managedscripts, 'fnamemodify(v:val, ":p")'), "\n")
 endfunction
 "}}}
 
@@ -252,18 +295,6 @@ endfunction
 
 
 "=============================================================================
-"NeoBundleLazyされていて 'runtimepath' に加わっていないパスを一時的に加える
-function! s:_add_runtimepath_for_neobundlelazy() "{{{
-  let addedlazyrtp = ''
-  if exists('*neobundle#config#get_neobundles')
-    let addedlazyrtp = join(map(filter(neobundle#config#get_neobundles(),'v:val.lazy'), 'v:val.rtp'), ',')
-    let vimrt_idx = match(substitute(&rtp, '\\', '/', 'g'), substitute($VIMRUNTIME, '\\', '/', 'g'))-1
-    let &rtp = &rtp[:vimrt_idx]. addedlazyrtp. &rtp[(vimrt_idx):]
-  endif
-  return addedlazyrtp
-endfunction
-"}}}
-"==================
 "lib#uptodate#isnot_this_uptodate()
 function! s:_get_uptodate_timestampline_num(filepath) "{{{
   if !filereadable(a:filepath)
@@ -290,9 +321,9 @@ function! s:_get_paths(filepattern) "{{{
   if a:filepattern == ''
     return []
   endif
-  let addedlazyrtp = s:_add_runtimepath_for_neobundlelazy()
+  let addedrtp = s:new_addedlazyrtp()
   let paths = split(globpath(&rtp, 'autoload/'. a:filepattern), "\n")
-  exe 'set rtp-='. addedlazyrtp
+  call addedrtp.untap()
   call filter(paths, 'filereadable(v:val)')
   return paths
 endfunction
@@ -319,7 +350,7 @@ endfunction
 "}}}
 "lib#uptodate#define_timestampvarskipping_keymap()
 function! s:_timestampskipping_undo(timestamp_pat) "{{{
-  exe 'norm! '. v:count. 'u'
+  exe 'norm!' v:count. 'u'
   while getline('.')=~a:timestamp_pat && undotree().seq_cur != 0
     undo
   endwhile
@@ -328,7 +359,7 @@ endfunction
 "}}}
 function! s:_timestampskipping_redo(timestamp_pat) "{{{
   let save_view = winsaveview()
-  exe 'norm!'. v:count. "\<C-r>"
+  exe 'norm!' v:count. "\<C-r>"
   let seq_last = undotree().seq_last
   while getline('.')=~a:timestamp_pat && undotree().seq_cur != seq_last
     redo
