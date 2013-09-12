@@ -231,7 +231,10 @@ function! s:collector._add_autocmds(idx) "{{{
   endif
   let linestr = s:_join_line_continuation(self.lines, a:idx)
   let linestr = s:_remove_nl_for_line_continuation(linestr)
-  call add(self.autocmds, s:_au_purser(linestr))
+  let autocmd_param = s:_au_purser(linestr)
+  if autocmd_param!={}
+    call add(self.autocmds, autocmd_param)
+  endif
 endfunction
 "}}}
 function! s:collector._add_unitesources(idx) "{{{
@@ -509,7 +512,7 @@ endfunction
 "}}}
 function! s:_au_purser(linestr) "{{{
   let autocmdlist = matchlist(a:linestr, s:AU_PURSEPAT)
-  return {'events': split(autocmdlist[2], ','), 'patterns': s:_au_join_escapedcomma_pat(split(autocmdlist[3], ',')), 'group': autocmdlist[1]=='' ? s:_aug_scope_name : autocmdlist[1], 'cmd': autocmdlist[4]}
+  return autocmdlist==[] ? {} : {'events': split(autocmdlist[2], ','), 'patterns': s:_au_join_escapedcomma_pat(split(autocmdlist[3], ',')), 'group': autocmdlist[1]=='' ? s:_aug_scope_name : autocmdlist[1], 'cmd': autocmdlist[4]}
 endfunction
 "}}}
 function! s:_au_join_escapedcomma_pat(patterns) "{{{
