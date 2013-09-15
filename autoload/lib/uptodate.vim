@@ -7,7 +7,7 @@ if !exists('g:uptodate_is_firstloaded')
   let s:firstloaded_is_this = 1
 endif
 
-let s:thisfile_updatetime = 1378957620
+let s:thisfile_updatetime = 1379214002
 try
   if exists('g:uptodate_latesttime') && g:uptodate_latesttime >= s:thisfile_updatetime
     finish
@@ -131,7 +131,7 @@ endfunction
 "=============================================================================
 "Main
 "runtime!する そして読み込み中のスクリプトファイルが最新でない時は1を返す
-function! lib#uptodate#isnot_this_uptodate(sfilepath) "{{{
+function! lib#uptodate#shouldnot_update_this(sfilepath) "{{{
   let sfile = s:manager.new_sfile(a:sfilepath)
   if sfile.has_already_sourced
     return 1
@@ -295,7 +295,7 @@ endfunction
 
 
 "=============================================================================
-"lib#uptodate#isnot_this_uptodate()
+"lib#uptodate#shouldnot_update_this()
 function! s:_get_uptodate_timestampline_num(filepath) "{{{
   if !filereadable(a:filepath)
     return 0
