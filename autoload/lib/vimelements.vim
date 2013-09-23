@@ -1,5 +1,5 @@
-"UPTODATE: 1379214138.
-if lib#uptodate#shouldnot_update_this(expand('<sfile>:p'))
+"UPTODATE: 1379922970.
+if lib#uptodate#isnot_uptodate(expand('<sfile>:p'))
   finish
 endif
 if exists('s:save_cpo')| finish| endif
