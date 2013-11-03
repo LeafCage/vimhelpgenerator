@@ -11,6 +11,7 @@ function! vimhelpgenerator#helpintomarkdown#generate(bgnrow, lastrow)
   let lines = s:_sourcecode(lines)
   let lines = s:_append_subhead(lines)
   let lines = s:_append_head(lines)
+  let lines = s:_insertspaceline_before_li(lines)
   let lines = s:_join_nl(lines)
   call map(lines, 'substitute(v:val, ''^\s\+\ze[^-]'', "", "")')
 
@@ -107,6 +108,24 @@ function! s:__rm_nextspacelines(lines, idx) "{{{
     let rmd+=1
   endwhile
   return rmd
+endfunction
+"}}}
+"==================
+function! s:_insertspaceline_before_li(lines) "{{{
+  let [lineslen, i] = [len(a:lines), 0]
+  while i < lineslen
+    if a:lines[i] !~ '^\s*-\s'
+      let i+=1
+      continue
+    end
+    call insert(a:lines, '', i)
+    let lineslen+=1
+    let i+=1
+    while a:lines[i]=~'^\s*-\s'
+      let i+=1
+    endwhile
+  endwhile
+  return a:lines
 endfunction
 "}}}
 "==================
