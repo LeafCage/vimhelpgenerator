@@ -15,13 +15,13 @@ function! vimhelpgenerator#helpintomarkdown#generate(bgnrow, lastrow)
   let lines = s:_join_nl(lines)
   call map(lines, 'substitute(v:val, ''^\s\+\ze[^-]'', "", "")')
 
-  let @" = join(lines, "\n")
   let path = expand('%:p:h:h'). '/README.md'
   if !filereadable(path)
     let _ = matchlist(getline(1), '^\*\(\w\+\)\.txt\*\s*\(.*\)')
     let [pluginname, plugininfo] = [ _[1], _[2] ]
-    call writefile(['#'.pluginname.'.vim', plugininfo, ''], path)
+    call extend(lines, ['#'.pluginname.'.vim', plugininfo, ''], 0)
   end
+  let @" = join(lines, "\n")
   exe 'edit' path
 endfunction
 
@@ -114,14 +114,14 @@ endfunction
 function! s:_insertspaceline_before_li(lines) "{{{
   let [lineslen, i] = [len(a:lines), 0]
   while i < lineslen
-    if a:lines[i] !~ '^\s*-\s'
+    if a:lines[i] !~ '^\s*\%(-\|\d\+\.\)\s'
       let i+=1
       continue
     end
     call insert(a:lines, '', i)
     let lineslen+=1
     let i+=1
-    while a:lines[i]=~'^\s*-\s'
+    while i<lineslen && a:lines[i]!~'^\s*$'
       let i+=1
     endwhile
   endwhile
@@ -136,8 +136,8 @@ function! s:_join_nl(lines) "{{{
     let i+=1
     if a:lines[i]=~'^\s*$\|^##'
       continue
-    elseif a:lines[i]=~'^\s*-\s'
-      while i<lineslen && a:lines[i]!~'^\s*$\|^\s*-\s'
+    elseif a:lines[i]=~'^\s*\%(-\|\d\+\.\)\s'
+      while i<lineslen && a:lines[i]!~'^\s*$'
         let i+=1
       endwhile
       continue
