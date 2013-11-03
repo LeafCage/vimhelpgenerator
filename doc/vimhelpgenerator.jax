@@ -165,7 +165,6 @@ overrider はヘルプファイルを作成するのに利用される generator
 overrider と|extend()|されているためである。generator は
 |vimhelpgenerator#generate()|の中で、以下のように呼び出されている。 >
 	call generator.make_gitignore()			".gitignoreを作成
-	call generator.make_readme()			"README.mdを作成
 	let lines = generator.build_helplines()		"helpに使う行を生成
 	let path = generator.make_help(lines)		"helpファイルを作成
 これらの中で例えば .gitignore を作らせないように挙動を変更させたければ、何もし
@@ -194,7 +193,6 @@ generatorの要素
 	lang			ヘルプで使われる言語
 				|g:vimhelpgenerator_defaultlanguage|
 	make_gitignore()	.gitignoreファイルを作る
-	make_readme()		README.mdファイルを作る
 	make_help()		doc/{help-name}.{txt,jax,etc...}ファイルを作る
 	build_helplines()	ヘルプの中身を組み立てる
 	_contents()		目次を作成
@@ -232,7 +230,6 @@ TODO						*vimhelpgenerator-todo*
 - testを作成する
 - licenseを独立項目として扱えるようにする
 - :exec 実行をパースする
-- helpからReadme.mdを作る
 
 
 ==============================================================================

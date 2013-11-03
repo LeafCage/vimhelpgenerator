@@ -44,14 +44,6 @@ function! s:generator.make_gitignore() "{{{
   endif
 endfunction
 "}}}
-function! s:generator.make_readme() "{{{
-  let lines = ['# '. self.name. '.vim', '', '## Docs', 'see `:h '. self.name. '`']
-  let readme_file = self.rootpath. '/README.md'
-  if !filereadable(readme_file)
-    call writefile(lines, readme_file)
-  endif
-endfunction
-"}}}
 function! s:generator.make_help(lines) "{{{
   let helpdir = self.rootpath. '/doc'
   let helppath = helpdir. '/'. self.name. (self.lang ==? 'ja' ? '.jax': '.txt')
@@ -237,7 +229,6 @@ function! vimhelpgenerator#generate(is_virtual, ...)
     call generator.open_virtualhelp(lines)
   else
     call generator.make_gitignore()
-    call generator.make_readme()
     let path = generator.make_help(lines)
     silent exe 'edit '. path
   endif
