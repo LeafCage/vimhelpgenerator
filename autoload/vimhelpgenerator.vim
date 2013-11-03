@@ -184,7 +184,7 @@ function! s:generator._functions() "{{{
   let lines = [self.sep_s, self._caption(self.words.functions, 'functions'), '']
   let globalfuncs = keys(filter(copy(self.functions), 'v:val.is_global'))
   for func in sort(globalfuncs)
-    call extend(lines, self._interface_caption(printf('%s(%s)', func, self.functions[func].param), func))
+    call extend(lines, self._interface_caption(printf('%s(%s)', func, self.functions[func].param), func.'()'))
     call extend(lines, ['', ''])
   endfor
   return lines
