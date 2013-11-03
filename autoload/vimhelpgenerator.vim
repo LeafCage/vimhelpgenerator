@@ -44,12 +44,19 @@ function! s:generator.make_gitignore() "{{{
   endif
 endfunction
 "}}}
-function! s:generator.make_help(lines) "{{{
+function! s:generator.exists_helpfile_already() "{{{
   let helpdir = self.rootpath. '/doc'
   let helppath = helpdir. '/'. self.name. (self.lang ==? 'ja' ? '.jax': '.txt')
-  if filereadable(helppath)
-    let helppath .= '1'
-  endif
+  let ret = filereadable(helppath)
+  if ret
+    echoh WarningMsg| call input('helpファイルはすでに存在します。仮想バッファで出力します。', )| echoh NONE
+  end
+  return ret
+endfunction
+"}}}
+function! s:generator.make_helpfile(lines) "{{{
+  let helpdir = self.rootpath. '/doc'
+  let helppath = helpdir. '/'. self.name. (self.lang ==? 'ja' ? '.jax': '.txt')
   if !isdirectory(helpdir)
     call mkdir(helpdir, 'p')
   endif
@@ -225,11 +232,11 @@ function! vimhelpgenerator#generate(is_virtual, ...)
   let overrider_name = overrider_name=~'^[''"]\+$' ? g:vimhelpgenerator_defaultoverrider : overrider_name
   let generator = s:new_generator(overrider_name, elementholder)
   let lines = generator.build_helplines()
-  if a:is_virtual
+  if a:is_virtual || generator.exists_helpfile_already()
     call generator.open_virtualhelp(lines)
   else
     call generator.make_gitignore()
-    let path = generator.make_help(lines)
+    let path = generator.make_helpfile(lines)
     silent exe 'edit '. path
   endif
   return generator
@@ -334,19 +341,19 @@ function! s:_remove_empty_interfaces(content, this) "{{{
   return 1
 endfunction
 "}}}
-"make_help contents
+"make_helpfile contents
 function! s:generator._contents_caption(title, tag, ...) dict "{{{
   let padding = get(a:, 1, '')
   let tabnum = 4 - (strdisplaywidth(padding. a:title) / 8)
   return printf('%s%s%s%s|%s-%s|', padding, a:title, repeat("\t", tabnum), padding, self.name, a:tag)
 endfunction
 "}}}
-"make_help variables
+"make_helpfile variables
 function! s:_sort_variables(item1, item2) "{{{
   return a:item1[1].order - a:item2[1].order
 endfunction
 "}}}
-"make_help commands
+"make_helpfile commands
 function! s:generator.__append_commands_lines(lines, commands) "{{{
   for cmd in map(sort(items(a:commands), 's:_sort_commands'), 'v:val[0]')
     let [commandhelpstr, range_description] = self._build_commandhelpstr(cmd)
@@ -392,7 +399,7 @@ function! s:generator._build_commandhelpstr(cmd) "{{{
   return [commandhelpstr, range_description]
 endfunction
 "}}}
-"make_help keymappings
+"make_helpfile keymappings
 function! s:generator.__append_keymapping_lines(lines, keymappings, is_local) "{{{
   let baflocal_label = a:is_local ? ["\t". self.words['buffer-local-mapping']] : []
   let lhss = map(sort(filter(items(a:keymappings), 'v:val[0] =~? ''^<Plug>\|<Leader>\|<LocalLeader>'''), 's:_sort_lhs'), 'v:val[0]')

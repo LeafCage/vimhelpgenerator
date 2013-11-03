@@ -134,8 +134,8 @@ g:vimhelpgenerator_contents			*g:vimhelpgenerator_contents*
 	{overrider-name}に、'' か "" を指定することで{overrider-name}の指定を
 	無しに等しくすることが出来る。
 
-	ヘルプファイルがすでに存在するとき、安全のために末尾に "1" を添付した
-	名前で生成される。
+	ヘルプファイルがすでに存在するとき、安全のために仮想バッファで生成され
+	る。つまり|:VimHelpGeneratorVirtual|を実行したのと同じ結果になる。
 	変数のうち、型が辞書のものは、正常に既定値を取得できない。また、そうで
 	なくても変数の既定値は正確ではないので、利用者が確認し手直しする必要が
 	ある。
@@ -152,7 +152,7 @@ g:vimhelpgenerator_contents			*g:vimhelpgenerator_contents*
 ------------------------------------------------------------------------------
 関数						*vimhelpgenerator-functions*
 
-						*vimhelpgenerator#generate*
+						*vimhelpgenerator#generate()*
 vimhelpgenerator#generate({is-virtual}, [{overrider-name}, [{path}]])
 	|:VimHelpGenerator|の実装。
 
