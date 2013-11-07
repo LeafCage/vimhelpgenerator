@@ -1,5 +1,6 @@
 if exists('s:save_cpo')| finish| endif
 let s:save_cpo = &cpo| set cpo&vim
+scriptencoding utf-8
 "=============================================================================
 function! vimhelpgenerator#helpintomarkdown#generate(bgnrow, lastrow)
   if &ft!=#'help'

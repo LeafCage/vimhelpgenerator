@@ -1,5 +1,6 @@
 if exists('s:save_cpo')| finish| endif
 let s:save_cpo = &cpo| set cpo&vim
+scriptencoding utf-8
 "=============================================================================
 let g:vimhelpgenerator_virtualhelpopencmd = get(g:, 'vimhelpgenerator_virtualhelpopencmd', 'split')
 let g:vimhelpgenerator_version = get(g:, 'vimhelpgenerator_version', 'Version :')
