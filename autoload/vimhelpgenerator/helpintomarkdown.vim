@@ -19,7 +19,7 @@ function! vimhelpgenerator#helpintomarkdown#generate(bgnrow, lastrow)
   let path = expand('%:p:h:h'). '/README.md'
   if !filereadable(path)
     let _ = matchlist(getline(1), '^\*\(\w\+\)\.txt\*\s*\(.*\)')
-    let [pluginname, plugininfo] = [ _[1], _[2] ]
+    let [pluginname, plugininfo] = [ _[1], substitute(_[2], '|\([][0-9A-Za-z_+=;:,.''<>(){}@!#$%&^~\-\\]\+\)|', '`\1`', 'g') ]
     call extend(lines, ['#'.pluginname.'.vim', plugininfo, ''], 0)
   end
   let @" = join(lines, "\n")
