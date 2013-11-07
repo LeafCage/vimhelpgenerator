@@ -169,9 +169,9 @@ function! s:_join_nl(lines) "{{{
   return a:lines
 endfunction
 "}}}
-function! s:__substitute_joinline(str) "{{{
-  let sub = byteidx(matchstr(a:str, '^\s*\zs\S'), 1)>1 ? '' : ' '
-  return substitute(a:str, '^\s\+', sub, '')
+function! s:__substitute_joinline(nextline) "{{{
+  let sub = byteidx(matchstr(a:nextline, '^\s*\zs\S'), 1)>1 ? '' : ' '
+  return substitute(a:nextline, '^\s*', sub, '')
 endfunction
 "}}}
 
