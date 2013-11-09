@@ -9,7 +9,7 @@ function! vimhelpgenerator#helpintomarkdown#generate(bgnrow, lastrow)
   end
   let lines = getline(a:bgnrow, a:lastrow)
   call map(lines, 'substitute(v:val, ''|\([][0-9A-Za-z_+=;:,.''''<>(){}@!#$%&^~\-\\]\+\)|'', "`\\1`", "g")')
-  let lines = s:_sourcecode(lines)
+  let lines = s:_codeblock(lines)
   let lines = s:_append_subhead(lines)
   let lines = s:_append_head(lines)
   let lines = s:_insertspaceline_before_li(lines)
@@ -28,7 +28,7 @@ endfunction
 
 
 "======================================
-function! s:_sourcecode(lines) "{{{
+function! s:_codeblock(lines) "{{{
   let [lineslen, i] = [len(a:lines), 0]
   while i < lineslen
     let a:lines[i] = substitute(a:lines[i], '<\(.\{-}\)>', '\&lt;\1\&gt;', 'g')

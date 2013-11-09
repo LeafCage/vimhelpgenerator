@@ -159,6 +159,7 @@ g:vimhelpgenerator_contents			*g:vimhelpgenerator_contents*
 	レジスタ " にセットする。
 	その後、README.mdを開く。README.mdが存在しないときには、タイトルなども
 	レジスタ " にセットされる。
+	※アンダースコア(_)のエスケープには対応していません。
 
 	変換ルール ~
 	- |xxx|は`xxx`に
