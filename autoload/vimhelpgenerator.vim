@@ -288,7 +288,7 @@ function! s:_en_words() "{{{
   return {'summary': 'a summary', 'contents': 'CONTENTS', 'introduction': 'INTRODUCTION', 'introduction_preface': '*%s* is a Vim plugin ',
     \ 'latest-version': 'Latest version:', 'usage': 'USAGE', 'interface': 'INTERFACE',
     \ 'variables': 'VARIABLES', 'default-value': 'default value: ', 'commands': 'COMMANDS', 'buffer-local-command': 'buffer local command',
-    \ 'lines': 'lines', 'default': 'default:', 'whole-file': 'whole file', 'key-mappings': 'KEY-MAPPINGS', 'enablemodes': '有効モード',
+    \ 'lines': 'lines', 'default': 'default:', 'whole-file': 'whole file', 'key-mappings': 'KEY-MAPPINGS', 'enablemodes': 'available mode',
     \ 'buffer-local-mapping': 'buffer local mapping', 'defaultmappings_global': 'default mappings (global)', 'defaultmappings_local': 'default mapping (buffer local)', 'defaultmappings': 'default mappings', 'localdefaultmappings': 'local default mappings',
     \ 'modeshortname': {'n': 'normal', 'x': 'visual', 's': 'select', 'o': 'operator', 'i': 'insert', 'c': 'commandline'},
     \ 'modename': {'n': 'normal mode', 'x': 'visual mode', 's': 'select mode', 'o': 'operator mode', 'i': 'insert mode', 'c': 'commandline'},
