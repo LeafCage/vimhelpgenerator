@@ -1,4 +1,4 @@
-"最新版のautoload/lib/uptodate.vimのみを読み込ませる "{{{
+"load only latest autoload/lib/uptodate.vim "{{{
 if exists('s:thisfile_updatetime')
   finish
 endif
@@ -7,14 +7,14 @@ if !exists('g:uptodate_is_firstloaded')
   let s:firstloaded_is_this = 1
 endif
 
-let s:thisfile_updatetime = 1379922722
+let s:thisfile_updatetime = 1385358647
 try
   if exists('g:uptodate_latesttime') && g:uptodate_latesttime >= s:thisfile_updatetime
     finish
   endif
   let g:uptodate_latesttime = s:thisfile_updatetime
 
-  " NeoBundleLazyされてるplugin pathも 'runtimepath' に加える
+  "add plugin's path of NeoBundleLazy to 'runtimepath'
   if !exists('g:uptodate_lazyrtp') && exists('*neobundle#config#get_neobundles')
     let g:uptodate_lazyrtp = join(map(filter(neobundle#config#get_neobundles(),'v:val.lazy'), 'v:val.rtp'), ',')
     let s:vimrt_idx = match(substitute(&rtp, '\\', '/', 'g'), substitute($VIMRUNTIME, '\\', '/', 'g'))-1
@@ -43,6 +43,7 @@ endtry
 "======================================
 if exists('s:save_cpo')| finish| endif
 let s:save_cpo = &cpo| set cpo&vim
+scriptencoding utf-8
 "=============================================================================
 let s:TIMESTAMPROW_LAST = 35
 

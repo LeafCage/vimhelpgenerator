@@ -1,4 +1,5 @@
-"UPTODATE: 1379922970.
+"UPTODATE: 1385358304.
+scriptencoding utf-8
 if lib#uptodate#isnot_uptodate(expand('<sfile>:p'))
   finish
 endif
