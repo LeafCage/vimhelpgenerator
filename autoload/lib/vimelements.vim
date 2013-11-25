@@ -149,7 +149,7 @@ function! s:collector._add_variables(idx) "{{{
   endif
 
   let s:_var_scope_is_global = linestr=~#'^\s*endf\%[unction]\>' ? 1 : linestr=~#'^\s*fu\%[nction]!\?\_s' ? 0 : s:_var_scope_is_global
-  let pat = s:_var_scope_is_global ? 'g:\w\+\|let\s\+\zs\w[^:]\w*' : 'g:\w\+'
+  let pat = s:_var_scope_is_global ? 'g:[0-9A-Za-z_#]\+\|let\s\+\zs\w[^:][0-9A-Za-z_#]*' : 'g:[0-9A-Za-z_#]\+'
   let i = 1
   while 1
     let var = matchstr(linestr, pat, 0, i)
