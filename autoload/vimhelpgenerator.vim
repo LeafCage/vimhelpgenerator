@@ -277,7 +277,7 @@ function! s:_ja_words() "{{{
   return {'summary': '要約', 'contents': '目次', 'introduction': '概要', 'introduction_preface': '*%s* は',
     \ 'latest-version': '最新版:', 'usage': '使い方', 'interface': 'インターフェイス',
     \ 'variables': '変数', 'default-value': '既定値: ', 'commands': 'コマンド', 'buffer-local-command': 'バッファローカルなコマンド',
-    \ 'lines': '行', 'default': '既定:', 'whole-file': 'ファイル全体', 'key-mappings': 'キーマッピング', 'enablemodes': '有効モード',
+    \ 'lines': '行', 'default': '既定:', 'whole-file': 'ファイル全体', 'key-mappings': 'キーマッピング', 'availablemode': '有効モード',
     \ 'buffer-local-mapping': 'バッファローカルなマッピング', 'defaultmappings_global': 'デフォルトマッピング(グローバル)', 'defaultmappings_local': 'デフォルトマッピング(バッファローカル)', 'defaultmappings': 'デフォルトマッピング', 'localdefaultmappings': 'ローカルデフォルトマッピング',
     \ 'modeshortname': {'n': 'ノーマル', 'x': 'ビジュアル', 's': 'セレクト', 'o': 'オペレータ', 'i': 'インサート', 'c': 'コマンドライン'},
     \ 'modename': {'n': 'ノーマルモード', 'x': 'ビジュアルモード', 's': 'セレクトモード', 'o': 'オペレータモード', 'i': 'インサートモード', 'c': 'コマンドライン'},
@@ -288,7 +288,7 @@ function! s:_en_words() "{{{
   return {'summary': 'a summary', 'contents': 'CONTENTS', 'introduction': 'INTRODUCTION', 'introduction_preface': '*%s* is a Vim plugin ',
     \ 'latest-version': 'Latest version:', 'usage': 'USAGE', 'interface': 'INTERFACE',
     \ 'variables': 'VARIABLES', 'default-value': 'default value: ', 'commands': 'COMMANDS', 'buffer-local-command': 'buffer local command',
-    \ 'lines': 'lines', 'default': 'default:', 'whole-file': 'whole file', 'key-mappings': 'KEY-MAPPINGS', 'enablemodes': 'available mode',
+    \ 'lines': 'lines', 'default': 'default:', 'whole-file': 'whole file', 'key-mappings': 'KEY-MAPPINGS', 'availablemode': 'available mode',
     \ 'buffer-local-mapping': 'buffer local mapping', 'defaultmappings_global': 'default mappings (global)', 'defaultmappings_local': 'default mapping (buffer local)', 'defaultmappings': 'default mappings', 'localdefaultmappings': 'local default mappings',
     \ 'modeshortname': {'n': 'normal', 'x': 'visual', 's': 'select', 'o': 'operator', 'i': 'insert', 'c': 'commandline'},
     \ 'modename': {'n': 'normal mode', 'x': 'visual mode', 's': 'select mode', 'o': 'operator mode', 'i': 'insert mode', 'c': 'commandline'},
@@ -407,7 +407,7 @@ function! s:generator.__append_keymapping_lines(lines, keymappings, is_local) "{
   for lhs in lhss
     call extend(a:lines, self._interface_caption(lhs, lhs))
     call extend(a:lines, baflocal_label)
-    let validmodes = "\t". self.words.enablemodes. ":"
+    let validmodes = "\t". self.words.availablemode. ":"
     let defaultmappings = []
     let localdefaultmappings = []
     let command = ''
