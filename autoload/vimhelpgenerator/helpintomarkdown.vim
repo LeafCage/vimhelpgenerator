@@ -46,7 +46,9 @@ function! s:_codeblock(lines) "{{{
     call extend(a:lines, ['```', ''], i)
     let lineslen+=2
     let i+=2
-    let a:lines[i] = substitute(a:lines[i], '^<', '', '')
+    if i < lineslen
+      let a:lines[i] = substitute(a:lines[i], '^<', '', '')
+    end
   endwhile
   return a:lines
 endfunction
