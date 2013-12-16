@@ -7,7 +7,7 @@ let g:vimhelpgenerator_version = get(g:, 'vimhelpgenerator_version', 'Version :'
 let g:vimhelpgenerator_author = get(g:, 'vimhelpgenerator_author', 'Author  :')
 let g:vimhelpgenerator_license = get(g:, 'vimhelpgenerator_license', 'vimhelpgenerator/MIT')
 let g:vimhelpgenerator_uri = get(g:, 'vimhelpgenerator_uri', 'https://github.com/user/')
-let g:vimhelpgenerator_modeline = get(g:, 'vimhelpgenerator_modeline', 'vim:tw=78:ts=8:ft=help:norl:noet:fen:fdl=0:')
+let g:vimhelpgenerator_modeline = get(g:, 'vimhelpgenerator_modeline', 'vim:tw=78:ts=8:ft=help:norl:noet:fen:')
 let g:vimhelpgenerator_defaultlanguage = get(g:, 'vimhelpgenerator_defaultlanguage', 'ja')
 let g:vimhelpgenerator_defaultoverrider = get(g:, 'vimhelpgenerator_defaultoverrider', 'default')
 let s:vimhelpgenerator_contents = {'contents': 1, 'introduction': 1, 'usage': 1,
