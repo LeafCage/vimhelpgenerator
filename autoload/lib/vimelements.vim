@@ -40,13 +40,13 @@ endfunction
 "}}}
 function! s:pathholder._set_rootpath_and_name(path) "{{{
   for dir in ['after', 'autoload', 'plugin', 'syntax', 'ftplugin', 'ftdetect']
-    let findpath = finddir(dir, a:path. ';**/vimfiles')
+    let findpath = finddir(dir, a:path. ';**/vimfiles;**/.vim')
     if findpath == ''
       continue
     endif
     let self.rootpath = fnamemodify(findpath, ':p:h:h')
     let self.pluginname = fnamemodify(self.rootpath, ':t:r')
-    if self.pluginname == 'vimfiles'
+    if self.pluginname =~# '\v^(vimfiles|\.vim)$'
       continue
     endif
     let self.is_failinit = 0
