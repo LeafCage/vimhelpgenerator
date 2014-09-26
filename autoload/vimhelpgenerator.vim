@@ -6,6 +6,7 @@ let g:vimhelpgenerator_virtualhelpopencmd = get(g:, 'vimhelpgenerator_virtualhel
 let g:vimhelpgenerator_version = get(g:, 'vimhelpgenerator_version', 'Version :')
 let g:vimhelpgenerator_author = get(g:, 'vimhelpgenerator_author', 'Author  :')
 let g:vimhelpgenerator_license = get(g:, 'vimhelpgenerator_license', 'vimhelpgenerator/MIT')
+let g:vimhelpgenerator_gitignore_lines = get(g:, 'vimhelpgenerator_gitignore_lines', ['/doc/tags*'])
 let g:vimhelpgenerator_uri = get(g:, 'vimhelpgenerator_uri', 'https://github.com/user/')
 let g:vimhelpgenerator_modeline = get(g:, 'vimhelpgenerator_modeline', 'vim:tw=78:ts=8:ft=help:norl:noet:fen:')
 let g:vimhelpgenerator_defaultlanguage = get(g:, 'vimhelpgenerator_defaultlanguage', 'ja')
@@ -38,10 +39,12 @@ function! s:new_generator(overrider_name, elementsholder)
   return generator
 endfunction
 function! s:generator.make_gitignore() "{{{
-  let gitignore_lines = ['/doc/tags*']
+  if g:vimhelpgenerator_gitignore_lines==[]
+    return
+  end
   let gitignore_file = self.rootpath. '/.gitignore'
   if !filereadable(gitignore_file)
-    call writefile(gitignore_lines, gitignore_file)
+    call writefile(g:vimhelpgenerator_gitignore_lines, gitignore_file)
   endif
 endfunction
 "}}}

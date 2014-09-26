@@ -89,6 +89,13 @@ g:vimhelpgenerator_license			*g:vimhelpgenerator_license*
 	にあるこのファイルの内容が読み込まれて挿入される。
 
 
+g:vimhelpgenerator_gitignore_lines	*g:vimhelpgenerator_gitignore_lines*
+	既定値: ["/doc/tags*"]
+	vimhelpgeneratorが作成する.gitignoreファイルの中身。
+	リストの一要素が一行に該当する。
+	これが空の場合、vimhelpgeneratorは.gitignoreファイルを作らない。
+
+
 g:vimhelpgenerator_uri				*g:vimhelpgenerator_uri*
 	既定値: "https://github.com/user/"
 	「概要」の部分に表示されるプラグインのURI。
