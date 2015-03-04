@@ -80,7 +80,7 @@ function! s:generator.open_virtualhelp(lines) "{{{
   if !is_finded && g:vimhelpgenerator_virtualhelpopencmd =~ 'sp\%[lit]\|vs\%[plit]\|new\|vne\%[w]\|sv\%[iew]'
     silent exe g:vimhelpgenerator_virtualhelpopencmd
   endif
-  silent exe 'keepj edit +se\ noro\ bt=nofile\ ft=help\ tw=78\ ts=8\ noet ['. self.name. (self.lang ==? 'ja' ? '.jax': '.txt'). ']'
+  silent exe printf('keepj edit +se\ noro\ bt=nofile\ ft=help\ tw=78\ ts=8\ noet :[%s%s]', self.name, (self.lang ==? 'ja' ? '.jax': '.txt'))
   let b:vimhelpgenerator_virtualbuffer = 1
   call add(s:virtualhelp_bufnrs, bufnr('%'))
   let save_ul = &undolevels

@@ -144,7 +144,7 @@ endfunction
 "}}}
 function! s:collector._add_variables(idx) "{{{
   let linestr = self.lines[a:idx]
-  let autoloadvar = self.autoload_prefix=='' ? '' : matchstr(linestr, 'let\s\+\%(g:\)\?\zs'. self.autoload_prefix. '\S\+\ze\+\s*=')
+  let autoloadvar = self.autoload_prefix=='' ? '' : matchstr(linestr, 'let\s\+\%(g:\)\?\zs'. self.autoload_prefix. '\S\+\ze\s*=')
   if autoloadvar != ''
     call self.__add_variables(autoloadvar, a:idx)
   endif
