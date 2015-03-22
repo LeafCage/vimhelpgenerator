@@ -463,9 +463,13 @@ function! s:generator.__append_defaultkeymappinglist_lines(lines, defaultkeymapp
     if lhss == []
       continue
     endif
+    call filter(map(lhss, '[v:val, strdisplaywidth(v:val) / 8]'), 'v:val[1] < 2')
+    if lhss==[]
+      continue
+    end
     call extend(a:lines, [self.words.modename[m], "{lhs}\t\t{rhs}", "--------\t------------------------"])
     for lhs in lhss
-      call add(a:lines, lhs. repeat("\t", (2 - strdisplaywidth(lhs) / 8)). join(a:defaultkeymappings[lhs][m].rhs))
+      call add(a:lines, lhs[0]. repeat("\t", (2 - lhs[1])). join(a:defaultkeymappings[lhs][m].rhs))
     endfor
     call add(a:lines, '')
   endfor
