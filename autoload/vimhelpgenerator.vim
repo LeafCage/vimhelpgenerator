@@ -24,11 +24,11 @@ aug vimhelpgenerator
   au VimLeavePre *    call <SID>_clear_virtualbufs()
 aug END
 "==================
-let s:generator = {}
-function! s:new_generator(overrider_name, elementsholder)
-  let generator = {'name': a:elementsholder.pluginname, 'rootpath': a:elementsholder.rootpath, 'variables': {}, 'commands': {}, 'globalkeymappings': {}, 'localkeymappings': {}, 'functions': {}, 'words': (g:vimhelpgenerator_defaultlanguage==?'ja' ? s:_ja_words() : s:_en_words()), 'lang': g:vimhelpgenerator_defaultlanguage}
-  call extend(generator, a:elementsholder.elements)
-  call extend(generator, s:generator, 'keep')
+let s:Generator = {}
+function! s:newGenerator(overrider_name, elements)
+  let generator = {'name': a:elements.name, 'root': a:elements.root, 'variables': {}, 'commands': {}, 'globalkeymappings': {}, 'localkeymappings': {}, 'functions': {}, 'words': (g:vimhelpgenerator_defaultlanguage==?'ja' ? s:_ja_words() : s:_en_words()), 'lang': g:vimhelpgenerator_defaultlanguage}
+  call extend(generator, a:elements.elements)
+  call extend(generator, s:Generator, 'keep')
   try
     call extend(generator, vimhelpgenerator#overrider#{a:overrider_name}#generator())
   catch /E117/
@@ -38,18 +38,18 @@ function! s:new_generator(overrider_name, elementsholder)
   endtry
   return generator
 endfunction
-function! s:generator.make_gitignore() "{{{
+function! s:Generator.make_gitignore() "{{{
   if g:vimhelpgenerator_gitignore_lines==[]
     return
   end
-  let gitignore_file = self.rootpath. '/.gitignore'
+  let gitignore_file = self.root. '/.gitignore'
   if !filereadable(gitignore_file)
     call writefile(g:vimhelpgenerator_gitignore_lines, gitignore_file)
   endif
 endfunction
 "}}}
-function! s:generator.exists_helpfile_already() "{{{
-  let helpdir = self.rootpath. '/doc'
+function! s:Generator.exists_helpfile_already() "{{{
+  let helpdir = self.root. '/doc'
   let helppath = helpdir. '/'. self.name. (self.lang ==? 'ja' ? '.jax': '.txt')
   let ret = filereadable(helppath)
   if ret
@@ -58,8 +58,8 @@ function! s:generator.exists_helpfile_already() "{{{
   return ret
 endfunction
 "}}}
-function! s:generator.make_helpfile(lines) "{{{
-  let helpdir = self.rootpath. '/doc'
+function! s:Generator.make_helpfile(lines) "{{{
+  let helpdir = self.root. '/doc'
   let helppath = helpdir. '/'. self.name. (self.lang ==? 'ja' ? '.jax': '.txt')
   if !isdirectory(helpdir)
     call mkdir(helpdir, 'p')
@@ -68,7 +68,7 @@ function! s:generator.make_helpfile(lines) "{{{
   return helppath
 endfunction
 "}}}
-function! s:generator.open_virtualhelp(lines) "{{{
+function! s:Generator.open_virtualhelp(lines) "{{{
   let is_finded = 0
   for winnr in range(1, winnr('$'))
     if getbufvar(winbufnr(winnr), 'vimhelpgenerator_virtualbuffer') != ''
@@ -91,7 +91,7 @@ function! s:generator.open_virtualhelp(lines) "{{{
   let &l:ul = save_ul
 endfunction
 "}}}
-function! s:generator.build_helplines() "{{{
+function! s:Generator.build_helplines() "{{{
   let self.sep_l = repeat('=', 78)
   let self.sep_s = repeat('-', 78)
   let lines = []
@@ -118,7 +118,7 @@ function! s:generator.build_helplines() "{{{
   return lines
 endfunction
 "}}}
-function! s:generator._contents() "{{{
+function! s:Generator._contents() "{{{
   let lines = ['', self.sep_l, self._caption(self.words.contents, 'contents'), '',]
   let contents = self._contentskeys()
   for c in filter(contents, 'v:val!="contents"')
@@ -128,7 +128,7 @@ function! s:generator._contents() "{{{
   return lines
 endfunction
 "}}}
-function! s:generator._introduction() "{{{
+function! s:Generator._introduction() "{{{
   let latest_ver_lines = g:vimhelpgenerator_uri=='' ? [] : [self.words['latest-version'], g:vimhelpgenerator_uri. self.name. '.vim']
   let lines = [self.sep_l, self._caption(self.words.introduction, 'introduction'), '', printf(self.words.introduction_preface, self.name), '']
   call extend(lines, latest_ver_lines)
@@ -136,17 +136,17 @@ function! s:generator._introduction() "{{{
   return lines
 endfunction
 "}}}
-function! s:generator._usage() "{{{
+function! s:Generator._usage() "{{{
   let lines = [self.sep_l, self._caption(self.words.usage, 'usage'), '', '', '']
   return lines
 endfunction
 "}}}
-function! s:generator._interface() "{{{
+function! s:Generator._interface() "{{{
   let lines = [self.sep_l, self._caption(self.words.interface, 'interface'), '']
   return lines
 endfunction
 "}}}
-function! s:generator._variables() "{{{
+function! s:Generator._variables() "{{{
   let lines = [self.sep_s, self._caption(self.words.variables, 'variables'), '']
   for var in map(sort(items(self.variables), 's:_sort_variables'), 'v:val[0]')
     call extend(lines, self._interface_caption(var, var))
@@ -166,7 +166,7 @@ function! s:generator._variables() "{{{
   return lines
 endfunction
 "}}}
-function! s:generator._commands() "{{{
+function! s:Generator._commands() "{{{
   let lines = [self.sep_s, self._caption(self.words.commands, 'commands'), '']
   let globalcmds = filter(copy(self.commands), '!v:val.is_buflocal')
   call self.__append_commands_lines(lines, globalcmds)
@@ -175,7 +175,7 @@ function! s:generator._commands() "{{{
   return lines
 endfunction
 "}}}
-function! s:generator._keymappings() "{{{
+function! s:Generator._keymappings() "{{{
   let sep_ss = repeat('-', 39)
   let lines = [self.sep_s, self._caption(self.words['key-mappings'], 'key-mappings'), '']
   let [GLOBAL, LOCAL] = [0, 1]
@@ -191,7 +191,7 @@ function! s:generator._keymappings() "{{{
   return lines
 endfunction
 "}}}
-function! s:generator._functions() "{{{
+function! s:Generator._functions() "{{{
   let lines = [self.sep_s, self._caption(self.words.functions, 'functions'), '']
   let globalfuncs = keys(filter(copy(self.functions), 'v:val.is_global'))
   for func in sort(globalfuncs)
@@ -201,40 +201,41 @@ function! s:generator._functions() "{{{
   return lines
 endfunction
 "}}}
-function! s:generator._setting() "{{{
+function! s:Generator._setting() "{{{
   let lines = [self.sep_l, self._caption(self.words.setting, 'setting'), '']
   return lines
 endfunction
 "}}}
-function! s:generator._todo() "{{{
+function! s:Generator._todo() "{{{
   let lines = [self.sep_l, self._caption(self.words.todo, 'todo'), '', '', '']
   return lines
 endfunction
 "}}}
-function! s:generator._changelog() "{{{
+function! s:Generator._changelog() "{{{
   let lines = [self.sep_l, self._caption(self.words.changelog, 'changelog'), '', '']
   return lines
 endfunction
 "}}}
 
 "========================================================
-"Main
+"Main:
 function! vimhelpgenerator#generate(is_virtual, ...)
   let path = fnamemodify(expand(get(a:, 2, '%')), ':p')
-  let pathholder = lib#vimelements#new_pathholder(path)
-  if pathholder.is_failinit
+  let inference = vimhelpgenerator_l#lim#misc#infer_plugin_pathinfo(path)
+  if inference=={}
     echohl WarningMsg |echo 'VimHelpGenerator: failed.' |echohl NONE
     return {'mes': 'VimHelpGenerator: failed.'}
-  endif
-  if s:_confirm(pathholder)
+  end
+  let pluginname = s:confirm(inference)
+  if pluginname==''
     return {'mes': 'canceled'}
   endif
   redraw
 
-  let elementholder = lib#vimelements#collect(pathholder, ['variables', 'commands', 'keymappings', 'functions'])
+  let elements = vimhelpgenerator_l#lim#pluginalz#analyze(inference.root, pluginname, ['variables', 'commands', 'keymappings', 'functions'])
   let overrider_name = get(a:, 1, '""')
   let overrider_name = overrider_name=~'^[''"]\+$' ? g:vimhelpgenerator_defaultoverrider : overrider_name
-  let generator = s:new_generator(overrider_name, elementholder)
+  let generator = s:newGenerator(overrider_name, elements)
   let lines = generator.build_helplines()
   if a:is_virtual || generator.exists_helpfile_already()
     call generator.open_virtualhelp(lines)
@@ -250,18 +251,15 @@ endfunction
 
 "======================================
 "main
-function! s:_confirm(pathholder) "{{{
-  let input = input(printf('%s  "%s"  [e]xecute/[r]ename/[q]uit: ', a:pathholder.rootpath, a:pathholder.pluginname), '', )
+function! s:confirm(inference) "{{{
+  let input = input(printf('%s  "%s"  [e]xecute/[r]ename/[q]uit: ', a:inference.root, a:inference.name), '', )
   if input == 'r'
-    let a:pathholder.pluginname = input('input plugin-name: ', a:pathholder.pluginname)
-    if a:pathholder.pluginname == ''
-      return 1
-    endif
-    let input = 'e'
+    let name = input('input plugin-name: ', a:inference.name)
+    return name
+  elseif input==#'e'
+    return a:inference.name
   endif
-  if input != 'e'
-    return 1
-  endif
+  return ''
 endfunction
 "}}}
 "autocmd
@@ -298,12 +296,12 @@ function! s:_en_words() "{{{
     \ 'functions': 'FUNCTIONS', 'setting': 'SETTING', 'todo': 'TODO', 'changelog': 'CHANGELOG', }
 endfunction
 "}}}
-function! s:generator._caption(title, tag) dict "{{{
+function! s:Generator._caption(title, tag) dict "{{{
   let tabnum = 6 - (strdisplaywidth(a:title) / 8)
   return printf('%s%s*%s-%s*', a:title, repeat("\t", tabnum), self.name, a:tag)
 endfunction
 "}}}
-function! s:generator._interface_caption(title, tag) "{{{
+function! s:Generator._interface_caption(title, tag) "{{{
   let tag = substitute(a:tag, '\*', 'star', 'g')
   let titlelen = strdisplaywidth(a:title)
   let taglen = strdisplaywidth(tag)
@@ -319,7 +317,7 @@ function! s:generator._interface_caption(title, tag) "{{{
   endif
 endfunction
 "}}}
-function! s:generator._contentskeys() "{{{
+function! s:Generator._contentskeys() "{{{
   return filter(sort(keys(filter(copy(g:vimhelpgenerator_contents), 'v:val!=0')), 's:_sort_contents'), 's:_remove_empty_interfaces(v:val, self)')
 endfunction
 "}}}
@@ -346,7 +344,7 @@ function! s:_remove_empty_interfaces(content, this) "{{{
 endfunction
 "}}}
 "make_helpfile contents
-function! s:generator._contents_caption(title, tag, ...) dict "{{{
+function! s:Generator._contents_caption(title, tag, ...) dict "{{{
   let padding = get(a:, 1, '')
   let tabnum = 4 - (strdisplaywidth(padding. a:title) / 8)
   return printf('%s%s%s%s|%s-%s|', padding, a:title, repeat("\t", tabnum), padding, self.name, a:tag)
@@ -358,7 +356,7 @@ function! s:_sort_variables(item1, item2) "{{{
 endfunction
 "}}}
 "make_helpfile commands
-function! s:generator.__append_commands_lines(lines, commands) "{{{
+function! s:Generator.__append_commands_lines(lines, commands) "{{{
   for cmd in map(sort(items(a:commands), 's:_sort_commands'), 'v:val[0]')
     let [commandhelpstr, range_description] = self._build_commandhelpstr(cmd)
     call extend(a:lines, self._interface_caption(commandhelpstr, ':'. cmd))
@@ -376,7 +374,7 @@ function! s:_sort_commands(item1, item2) "{{{
   return a:item1[1].order - a:item2[1].order
 endfunction
 "}}}
-function! s:generator._build_commandhelpstr(cmd) "{{{
+function! s:Generator._build_commandhelpstr(cmd) "{{{
   let commandhelpstr = ':'
   let range_description = ''
   let command = self.commands[a:cmd]
@@ -404,7 +402,7 @@ function! s:generator._build_commandhelpstr(cmd) "{{{
 endfunction
 "}}}
 "make_helpfile keymappings
-function! s:generator.__append_keymapping_lines(lines, keymappings, is_local) "{{{
+function! s:Generator.__append_keymapping_lines(lines, keymappings, is_local) "{{{
   let baflocal_label = a:is_local ? ["\t". self.words['buffer-local-mapping']] : []
   let lhss = map(sort(filter(items(a:keymappings), 'v:val[0] =~? ''^<Plug>\|<Leader>\|<LocalLeader>'''), 's:_sort_lhs'), 'v:val[0]')
   for lhs in lhss
@@ -453,7 +451,7 @@ function! s:_expr_mode(m) "{{{
   return a:m=='n' ? 32 : a:m=='i' ? 16 : a:m=='x' ? 8 : a:m=='s' ? 4 : a:m=='o' ? 2 : 1
 endfunction
 "}}}
-function! s:generator.__append_defaultkeymappinglist_lines(lines, defaultkeymappings, is_local) "{{{
+function! s:Generator.__append_defaultkeymappinglist_lines(lines, defaultkeymappings, is_local) "{{{
   if a:defaultkeymappings == {}
     return
   endif
