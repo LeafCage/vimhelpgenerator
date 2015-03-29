@@ -232,7 +232,7 @@ function! vimhelpgenerator#generate(is_virtual, ...)
   endif
   redraw
 
-  let elements = vimhelpgenerator_l#lim#pluginalz#analyze(inference.root, pluginname, ['variables', 'commands', 'keymappings', 'functions'])
+  let elements = vimhelpgenerator_l#lim#alzplugin#analyze(inference.root, pluginname, ['variables', 'commands', 'keymappings', 'functions'])
   let overrider_name = get(a:, 1, '""')
   let overrider_name = overrider_name=~'^[''"]\+$' ? g:vimhelpgenerator_defaultoverrider : overrider_name
   let generator = s:newGenerator(overrider_name, elements)

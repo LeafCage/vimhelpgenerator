@@ -498,7 +498,7 @@ endfunction
 
 "========================================================
 "Main:
-function! vimhelpgenerator_l#lim#pluginalz#analyze(...) "{{{
+function! vimhelpgenerator_l#lim#alzplugin#analyze(...) "{{{
   let _ = s:init_args(a:000)
   if _=={}
     return {}
