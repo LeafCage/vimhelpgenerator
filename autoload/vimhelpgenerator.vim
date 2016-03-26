@@ -221,7 +221,7 @@ endfunction
 "Main:
 function! vimhelpgenerator#generate(is_virtual, ...)
   let path = fnamemodify(expand(get(a:, 2, '%')), ':p')
-  let inference = vimhelpgenerator_l#lim#misc#infer_plugin_pathinfo(path)
+  let inference = __vimhelpgenerator#lim#misc#infer_plugin_pathinfo(path)
   if inference=={}
     echohl WarningMsg |echo 'VimHelpGenerator: failed.' |echohl NONE
     return {'mes': 'VimHelpGenerator: failed.'}
@@ -232,7 +232,7 @@ function! vimhelpgenerator#generate(is_virtual, ...)
   endif
   redraw
 
-  let elements = vimhelpgenerator_l#lim#alzplugin#analyze(inference.root, pluginname, ['variables', 'commands', 'keymappings', 'functions'])
+  let elements = __vimhelpgenerator#lim#alzplugin#analyze(inference.root, pluginname, ['variables', 'commands', 'keymappings', 'functions'])
   let overrider_name = get(a:, 1, '""')
   let overrider_name = overrider_name=~'^[''"]\+$' ? g:vimhelpgenerator_defaultoverrider : overrider_name
   let generator = s:newGenerator(overrider_name, elements)
@@ -467,7 +467,7 @@ function! s:Generator.__append_defaultkeymappinglist_lines(lines, defaultkeymapp
     end
     call extend(a:lines, [self.words.modename[m], "{lhs}\t\t{rhs}", "--------\t------------------------"])
     for lhs in lhss
-      call add(a:lines, lhs[0]. repeat("\t", (2 - lhs[1])). join(a:defaultkeymappings[lhs][m].rhs))
+      call add(a:lines, lhs[0]. repeat("\t", (2 - lhs[1])). join(a:defaultkeymappings[lhs[0]][m].rhs))
     endfor
     call add(a:lines, '')
   endfor

@@ -4,6 +4,7 @@ let s:save_cpo = &cpo| set cpo&vim
 "=============================================================================
 let s:TYPE_STR = type('')
 let s:TYPE_LIST = type([])
+let s:NEUTRAL_KEYMAPPINGMODES = {}
 let s:AUTOCMDS_PAT = 'au\%[tocmd]\s\+\%(\(\S\+\)\s\+\)\?\(\%('.
   \ '\%(
   \Buf\%(Add\|Create\|Delete\|Enter\|FileP\%(ost\|re\)\|Hidden\|Leave\|New\%(File\)\?\|Read\%(\%(Cmd\|P\%(ost\|re\)\)\)\?\|Unload\|W\%(i\%(n\%(Enter\|Leave\)\|peout\)\|rite\%(\%(Cmd\|P\%(ost\|re\)\)\)\?\)\)
@@ -33,7 +34,7 @@ function! s:init_args(variadic) "{{{
     unlet arg
   endfor
   if get(l:, 'pluginroot', '')==''
-    let inference = vimhelpgenerator_l#lim#misc#infer_plugin_pathinfo(expand('%'))
+    let inference = __vimhelpgenerator#lim#misc#infer_plugin_pathinfo(expand('%'))
     if inference=={}
       return {}
     end
@@ -41,7 +42,7 @@ function! s:init_args(variadic) "{{{
   end
   if get(l:, 'pluginname', '')==''
     if !exists('inference')
-      let inference = vimhelpgenerator_l#lim#misc#infer_plugin_pathinfo(pluginroot)
+      let inference = __vimhelpgenerator#lim#misc#infer_plugin_pathinfo(pluginroot)
       if inference=={}
         return {}
       end
@@ -191,7 +192,7 @@ function! s:_combine_keymapping(collectorkeymappings, lhs, modes) "{{{
   endif
   for m in ['n', 'i', 'x', 's', 'o', 'c']
     if has_key(a:collectorkeymappings[a:lhs], m)
-      let a:modes[m] = get(a:modes, m, s:_neutral_keymappingmodes())
+      let a:modes[m] = get(a:modes, m, s:NEUTRAL_KEYMAPPINGMODES)
       call extend(a:modes[m].rhs, a:collectorkeymappings[a:lhs][m].rhs)
     endif
   endfor
@@ -498,7 +499,7 @@ endfunction
 
 "========================================================
 "Main:
-function! vimhelpgenerator_l#lim#alzplugin#analyze(...) "{{{
+function! __vimhelpgenerator#lim#alzplugin#analyze(...) "{{{
   let _ = s:init_args(a:000)
   if _=={}
     return {}

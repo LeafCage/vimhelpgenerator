@@ -59,7 +59,7 @@ endfunction
 
 "=============================================================================
 "Vim:
-function! vimhelpgenerator_l#lim#misc#viminfo_path() "{{{
+function! __vimhelpgenerator#lim#misc#viminfo_path() "{{{
   let path = matchstr(&viminfo, '^\%(.\+,\)\?n\zs.\+$')
   if path!=''
     return path
@@ -68,13 +68,33 @@ function! vimhelpgenerator_l#lim#misc#viminfo_path() "{{{
   end
 endfunction
 "}}}
-function! vimhelpgenerator_l#lim#misc#expand_keycodes(str) "{{{
+function! __vimhelpgenerator#lim#misc#total_winheight() "{{{
+  let ls = &laststatus>1 || &laststatus && winnr('$')>1
+  let stal = &showtabline>1 || &showtabline && tabpagenr('$')>1
+  return &lines - stal - ls - &l:cmdheight
+endfunction
+"}}}
+function! __vimhelpgenerator#lim#misc#expand_keycodes(str) "{{{
   return substitute(a:str, '<\S\{-1,}>', '\=eval(''"\''. submatch(0). ''"'')', 'g')
+endfunction
+"}}}
+function! __vimhelpgenerator#lim#misc#get_emptybufnr(...) "{{{
+  let targnrs = range(bufnr('$'), 1, -1)
+  if a:0
+    let ignore_bufs = a:1
+    call filter(targnrs, 'index(ignore_bufs, v:val)==-1')
+  end
+  for n in targnrs
+    if bufname(n)=='' && match(getbufline(n, 1, '$'), '\S')==-1
+      return n
+    end
+  endfor
+  return 0
 endfunction
 "}}}
 
 
-function! vimhelpgenerator_l#lim#misc#get_cmdresults(cmd) "{{{
+function! __vimhelpgenerator#lim#misc#get_cmdresults(cmd) "{{{
   let save_vfile = &verbosefile
   set verbosefile=
   redir => result
@@ -85,17 +105,17 @@ function! vimhelpgenerator_l#lim#misc#get_cmdresults(cmd) "{{{
 endfunction
 "}}}
 
-function! vimhelpgenerator_l#lim#misc#get_sid(...) "{{{
+function! __vimhelpgenerator#lim#misc#get_sid(...) "{{{
   let path = !a:0 ? expand('%:p') : fnamemodify(expand(a:1), ':p')
-  let snames = vimhelpgenerator_l#lim#misc#get_cmdresults('scriptnames')
+  let snames = __vimhelpgenerator#lim#misc#get_cmdresults('scriptnames')
   call map(snames, 'substitute(v:val, ''\s*\d*\s*:\s*\(.*\)'', ''\=expand(submatch(1))'', "")')
   let path = get(snames, 0, '')=~'\\' ? substitute(path, '/', '\\', 'g') : substitute(path, '\\', '/', 'g')
   let sid = index(snames, path, 0, 1)+1
   return sid
 endfunction
 "}}}
-function! vimhelpgenerator_l#lim#misc#match_sids(pat) "{{{
-  let snames = vimhelpgenerator_l#lim#misc#get_cmdresults('scriptnames')
+function! __vimhelpgenerator#lim#misc#match_sids(pat) "{{{
+  let snames = __vimhelpgenerator#lim#misc#get_cmdresults('scriptnames')
   let sids = []
   let i = match(snames, escape(a:pat, ' .\'))+1
   while i
@@ -106,13 +126,13 @@ function! vimhelpgenerator_l#lim#misc#match_sids(pat) "{{{
   return sids
 endfunction
 "}}}
-function! vimhelpgenerator_l#lim#misc#get_scriptpath(sid) "{{{
-  let snames = vimhelpgenerator_l#lim#misc#get_cmdresults('scriptnames')
+function! __vimhelpgenerator#lim#misc#get_scriptpath(sid) "{{{
+  let snames = __vimhelpgenerator#lim#misc#get_cmdresults('scriptnames')
   let path = substitute(get(snames, a:sid-1, ''), '^\s*\d\+:\s\+', '', '')
   return path=='' ? '' : fnamemodify(path, ':p')
 endfunction
 "}}}
-function! vimhelpgenerator_l#lim#misc#get_scriptinfos(...) "{{{
+function! __vimhelpgenerator#lim#misc#get_scriptinfos(...) "{{{
   if a:0 > 1
     let expr = 'v:val =~ '''. escape(a:1, ' .\'). ''''
     for str in a:000[1:]
@@ -122,24 +142,24 @@ function! vimhelpgenerator_l#lim#misc#get_scriptinfos(...) "{{{
     let pat = !a:0 ? expand('%') : type(a:1)==s:TYPE_NR ? '^\s*'.a:1.':' : escape(a:1, ' .\')
     let expr = 'v:val =~ pat'
   end
-  return filter(vimhelpgenerator_l#lim#misc#get_cmdresults('scriptnames'), expr)
+  return filter(__vimhelpgenerator#lim#misc#get_cmdresults('scriptnames'), expr)
 endfunction
 "}}}
 
-function! vimhelpgenerator_l#lim#misc#get_sfuncs(...) "{{{
+function! __vimhelpgenerator#lim#misc#get_sfuncs(...) "{{{
   let path = a:0 ? expand(a:1) : expand('%')
-  let sid = vimhelpgenerator_l#lim#misc#get_sid(path)
+  let sid = __vimhelpgenerator#lim#misc#get_sid(path)
   if !sid
     if !(path==expand('%') || path==expand('%:p'))
       exe 'source' path
-      let sid = vimhelpgenerator_l#lim#misc#get_sid(path)
+      let sid = __vimhelpgenerator#lim#misc#get_sid(path)
     end
     if !sid
       return {}
     end
   end
   let prefix = '<SNR>'. sid. '_'
-  let funcs = vimhelpgenerator_l#lim#misc#get_cmdresults('function')
+  let funcs = __vimhelpgenerator#lim#misc#get_cmdresults('function')
   let filter_pat = '^\s*function '. prefix
   let map_pat = prefix. '\zs\w\+'
   let ret = {}
@@ -153,7 +173,7 @@ endfunction
 
 "======================================
 "Data:
-function! vimhelpgenerator_l#lim#misc#uniq(list) "{{{
+function! __vimhelpgenerator#lim#misc#uniq(list) "{{{
   return s:newUniqfier(a:list).mill()
 endfunction
 "}}}
@@ -161,17 +181,17 @@ endfunction
 
 "======================================
 "System:
-function! vimhelpgenerator_l#lim#misc#path_encode(path) "{{{
+function! __vimhelpgenerator#lim#misc#path_encode(path) "{{{
   return substitute(a:path, '[=:/\\]', '\=get({"=": "==", ":": "=-"}, submatch(0), "=+")', 'g')
 endfunction
 "}}}
-function! vimhelpgenerator_l#lim#misc#path_decode(fname) "{{{
+function! __vimhelpgenerator#lim#misc#path_decode(fname) "{{{
   return substitute(a:fname, '==\|=+\|=-', '\={"==": "=", "=-": ":", "=+": "/"}[submatch(0)]', 'g')
 endfunction
 "}}}
 
 
-function! vimhelpgenerator_l#lim#misc#infer_plugin_pathinfo(path) "{{{
+function! __vimhelpgenerator#lim#misc#infer_plugin_pathinfo(path) "{{{
   let [rootpath, rootname] = s:_get_rootpath_and_rootname_of(fnamemodify(expand(a:path), ':p'))
   if rootpath == ''
     return {}
