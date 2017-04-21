@@ -275,7 +275,7 @@ endfunction
 "==================
 "generator
 function! s:_ja_words() "{{{
-  return {'summary': '要約', 'contents': '目次', 'introduction': '概要', 'introduction_preface': '*%s* は',
+  return {'summary': '日本語ヘルプ', 'contents': '目次', 'introduction': '概要', 'introduction_preface': '*%s* は',
     \ 'latest-version': '最新版:', 'usage': '使い方', 'interface': 'インターフェイス',
     \ 'variables': '変数', 'default-value': '既定値: ', 'commands': 'コマンド', 'buffer-local-command': 'バッファローカルなコマンド',
     \ 'lines': '行', 'default': '既定:', 'whole-file': 'ファイル全体', 'key-mappings': 'キーマッピング', 'availablemode': '有効モード',
