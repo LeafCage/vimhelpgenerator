@@ -9,6 +9,7 @@ https://github.com/LeafCage/vimhelpgenerator.vim
 
 
 ##使い方
+
 ####ソースファイルからヘルプファイルを生成する
 ヘルプファイルを作成したいプラグインの、いずれかのファイルを開いて`:VimHelpGenerator`を実行する。  
 確認プロンプトが出るので e で実行継続する。  
